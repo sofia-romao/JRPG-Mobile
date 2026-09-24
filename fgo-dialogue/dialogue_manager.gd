@@ -2,6 +2,7 @@ extends Control
 class_name DialogueManager
 
 signal dialogue_finished
+signal game_event_triggered(event: GameEvent)
 
 @export_group("Componentes de Texto")
 @export var name_label: RichTextLabel
@@ -121,6 +122,11 @@ func _gerar_botoes_de_escolha() -> void:
 
 func _on_escolha_selecionada(choice: StoryChoice) -> void:
 	_limpar_botoes_de_escolha()
+	if choice.trigger_game_event != null:
+		game_event_triggered.emit(choice.trigger_game_event)
+		# Se o evento for de batalha, interrompemos o fluxo de texto aqui, pois a Main vai deletar essa cena
+		if choice.trigger_game_event.tipo_evento == GameEvent.EventType.INICIAR_BATALHA:
+			return 
 	if next_button: next_button.visible = true
 	
 	if choice.next_event:

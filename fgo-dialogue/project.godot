@@ -11,7 +11,7 @@ config_version=5
 [application]
 
 config/name="FGO Dialogue"
-run/main_scene="uid://ctwonplhnpd0r"
+run/main_scene="uid://dv3q36sendh72"
 config/features=PackedStringArray("4.7", "GL Compatibility")
 config/icon="res://icon.svg"
 
