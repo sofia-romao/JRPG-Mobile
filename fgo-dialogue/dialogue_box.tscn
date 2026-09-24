@@ -1,0 +1,72 @@
+[gd_scene format=3 uid="uid://ctwonplhnpd0r"]
+
+[ext_resource type="Script" uid="uid://byeskm8og8tco" path="res://dialogue_manager.gd" id="1_senjy"]
+[ext_resource type="Script" uid="uid://dggbsbo8hrgg4" path="res://dialogue_tester.gd" id="2_n23yb"]
+
+[node name="DialogueBox" type="Control" unique_id=1614894843 node_paths=PackedStringArray("name_label", "text_label", "portrait_rect", "choices_container", "next_button")]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_senjy")
+name_label = NodePath("Control/NameLabel")
+text_label = NodePath("Control/NarrationBox")
+portrait_rect = NodePath("CharacterPortrait")
+choices_container = NodePath("ChoicesContainer")
+next_button = NodePath("NextButton")
+
+[node name="CharacterPortrait" type="TextureRect" parent="." unique_id=710672688]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="Control" type="Control" parent="." unique_id=1557444920]
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -191.0
+grow_horizontal = 2
+grow_vertical = 0
+
+[node name="BocBg" type="TextureRect" parent="Control" unique_id=1605332727]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="NameLabel" type="RichTextLabel" parent="Control" unique_id=1298905705]
+custom_minimum_size = Vector2(800, 120)
+layout_mode = 0
+offset_left = -2.3005219
+offset_top = -36.414246
+offset_right = 797.69946
+offset_bottom = 83.585754
+
+[node name="NarrationBox" type="RichTextLabel" parent="Control" unique_id=562803218]
+custom_minimum_size = Vector2(800, 120)
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="ChoicesContainer" type="VBoxContainer" parent="." unique_id=714274165]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="NextButton" type="Button" parent="." unique_id=391012292]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+flat = true
+
+[node name="DialogueTester" type="Node" parent="." unique_id=1427837285]
+script = ExtResource("2_n23yb")
