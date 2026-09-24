@@ -19,15 +19,16 @@ var _is_typing: bool = false
 var _current_tween: Tween = null
 
 func _ready() -> void:
-	# Impede que cliques na interface passem para o mapa ou jogo atrás dela
+	# Impede que cliques passem para o fundo
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	visible = false
 	
-	# Garante que o botão invisível avance o diálogo ao ser clicado
+	# Garante a conexão do botão invisível de avançar
 	if next_button:
 		next_button.pressed.connect(_on_next_clicked)
-	else:
-		push_error("DialogueManager: O NextButton não foi arrastado no Inspector!")
+		
+	# 🔴 REMOVA OU COMENTE qualquer linha aqui dentro que faça menção a:
+	# _rodar_teste() ou que instancie um DialogueTester antigo!
 
 func start_dialogue(story: StoryEvent) -> void:
 	if story == null or story.dialogue_lines.is_empty():
@@ -122,17 +123,16 @@ func _gerar_botoes_de_escolha() -> void:
 
 func _on_escolha_selecionada(choice: StoryChoice) -> void:
 	_limpar_botoes_de_escolha()
+	
+	# 1. Avisa a Main para aplicar o pacote de dados do Resource (Modificar HP, flags, etc.)
 	if choice.trigger_game_event != null:
 		game_event_triggered.emit(choice.trigger_game_event)
-		# Se o evento for de batalha, interrompemos o fluxo de texto aqui, pois a Main vai deletar essa cena
-		if choice.trigger_game_event.tipo_evento == GameEvent.EventType.INICIAR_BATALHA:
-			return 
-	if next_button: next_button.visible = true
-	
-	if choice.next_event:
+		
+	# 2. Depois decide de forma cega se continua o texto ou se encerra
+	if choice.next_event != null:
 		start_dialogue(choice.next_event)
 	else:
-		_fechar_dialogo()
+		_fechar_dialogo() # Força o encerramento seguro e emite o dialogue_finished!
 
 func _limpar_botoes_de_escolha() -> void:
 	if choices_container:

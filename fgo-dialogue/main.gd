@@ -5,7 +5,7 @@ class_name MainController
 @export var scene_container: Node
 
 # Caminhos absolutos das três cenas equivalentes
-const EXPLORATION_SCENE_PATH = "res://scenes/exploration_menu.tscn"
+const EXPLORATION_SCENE_PATH = "res://test_exploration_scene.tscn"
 const DIALOGUE_SCENE_PATH = "res://scenes/dialogue_box.tscn"
 const COMBAT_SCENE_PATH = "res://scenes/combat_arena.tscn"
 
@@ -68,20 +68,28 @@ func _on_exploracao_solicitou_dialogo(story_event: StoryEvent) -> void:
 
 # O Diálogo acabou normalmente (sem lutas) -> Devolve o jogador para a Exploração
 func _on_dialogue_terminou() -> void:
-	print("🔄 Main: Diálogo concluído. Retornando para a Exploração...")
+	# 🔴 O SEGREDO ESTÁ AQUI: Espera um frame para garantir que os sinais 
+	# de GameEvent atualizaram o PlayerData antes de renderizar o mapa!
+	await get_tree().process_frame
+	
+	print("\n📊 [STATUS DO TIME SALVO NO AUTOLOAD]")
+	for heroi_id in PlayerData.party_ativa:
+		var dados = PlayerData.get_dados_heroi(heroi_id)
+		print("👤 %s -> HP Atual: %d/100" % [dados.get("nome"), dados.get("hp_atual")])
+	print("📌 Estado da Missão Em Andamento: ", PlayerData.missao_em_andamento)
+	print("-----------------------------------------\n")
+	
 	_transicionar_para_cena(EXPLORATION_SCENE_PATH)
-
 # O Diálogo fez uma escolha que gerou um GameEvent (ex: Iniciar Batalha)
 func _on_dialogue_disparou_evento(event: GameEvent) -> void:
 	if event == null: return
 	
-	if event.tipo_evento == GameEvent.EventType.INICIAR_BATALHA:
-		print("⚔️ Main: Diálogo solicitou combate! Instanciando a Arena...")
-		var arena = _transicionar_para_cena(COMBAT_SCENE_PATH)
-		
-		if arena and arena.has_method("inicializar_batalha"):
-			# Injeta os dados brutos da batalha direto na nova cena de combate
-			arena.inicializar_batalha(event.inimigos, event.cenario_fundo)
+	PlayerData.missao_em_andamento = event.set_missao_em_andamento
+	if event.heroi_id != "" and event.hp_modifier != 0:
+		if PlayerData.colecao_herois.has(event.heroi_id):
+			var hp_velho = PlayerData.colecao_herois[event.heroi_id]["hp_atual"]
+			# Executa a matemática cega pura baseada no Resource
+			PlayerData.atualizar_hp(event.heroi_id, hp_velho + event.hp_modifier)
 
 # O Combate acabou -> Devolve o jogador para a Exploração
 func _on_combate_terminou(vitoria: bool) -> void:

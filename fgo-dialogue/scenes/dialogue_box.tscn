@@ -1,7 +1,6 @@
 [gd_scene format=3 uid="uid://ctwonplhnpd0r"]
 
 [ext_resource type="Script" uid="uid://byeskm8og8tco" path="res://dialogue_manager.gd" id="1_senjy"]
-[ext_resource type="Script" uid="uid://dggbsbo8hrgg4" path="res://dialogue_tester.gd" id="2_n23yb"]
 
 [node name="DialogueBox" type="Control" unique_id=1614894843 node_paths=PackedStringArray("name_label", "text_label", "portrait_rect", "choices_container", "next_button")]
 layout_mode = 3
@@ -67,6 +66,3 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 flat = true
-
-[node name="DialogueTester" type="Node" parent="." unique_id=1427837285]
-script = ExtResource("2_n23yb")
