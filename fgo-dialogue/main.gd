@@ -68,30 +68,68 @@ func _on_exploracao_solicitou_dialogo(story_event: StoryEvent) -> void:
 
 # O Diálogo acabou normalmente (sem lutas) -> Devolve o jogador para a Exploração
 func _on_dialogue_terminou() -> void:
-	# 🔴 O SEGREDO ESTÁ AQUI: Espera um frame para garantir que os sinais 
-	# de GameEvent atualizaram o PlayerData antes de renderizar o mapa!
+	# Espera um frame para garantir que os sinais de GameEvent atualizaram o PlayerData
 	await get_tree().process_frame
 	
 	print("\n📊 [STATUS DO TIME SALVO NO AUTOLOAD]")
 	for heroi_id in PlayerData.party_ativa:
-		var dados = PlayerData.get_dados_heroi(heroi_id)
-		print("👤 %s -> HP Atual: %d/100" % [dados.get("nome"), dados.get("hp_atual")])
+		var heroi: HeroState = PlayerData.get_heroi(heroi_id)
+		if heroi and heroi.blueprint:
+			# Agora puxamos o nome do blueprint e o max_hp calculado em tempo real!
+			print("👤 %s -> HP Atual: %d/%d (Nv. %d)" % [
+				heroi.blueprint.nome, 
+				heroi.hp_atual, 
+				heroi.get_max_hp(), 
+				heroi.get_nivel()
+			])
 	print("📌 Estado da Missão Em Andamento: ", PlayerData.missao_em_andamento)
 	print("-----------------------------------------\n")
 	
 	_transicionar_para_cena(EXPLORATION_SCENE_PATH)
-# O Diálogo fez uma escolha que gerou um GameEvent (ex: Iniciar Batalha)
+
+# O Diálogo fez uma escolha que gerou um GameEvent (ex: Iniciar Batalha ou Dano via diálogo)
 func _on_dialogue_disparou_evento(event: GameEvent) -> void:
 	if event == null: return
 	
+	# 1. Seta a flag de missão em andamento herdada do seu sistema original
 	PlayerData.missao_em_andamento = event.set_missao_em_andamento
-	if event.heroi_id != "" and event.hp_modifier != 0:
-		if PlayerData.colecao_herois.has(event.heroi_id):
-			var hp_velho = PlayerData.colecao_herois[event.heroi_id]["hp_atual"]
-			# Executa a matemática cega pura baseada no Resource
-			PlayerData.atualizar_hp(event.heroi_id, hp_velho + event.hp_modifier)
+	
+	# 2. Executa a unificação baseada no tipo de evento usando as novas regras seguras
+	match event.tipo_evento:
+		GameEvent.EventType.INICIAR_BATALHA:
+			print("⚔️ Main: Evento disparou início de combate!")
+			_transicionar_para_cena(COMBAT_SCENE_PATH)
+			
+		GameEvent.EventType.CONCLUIR_MISSAO:
+			print("🏆 Main: Evento disparou conclusão de missão!")
+			PlayerData.missao_em_andamento = false
+			PlayerData.curar_party_ativa()
+			
+		GameEvent.EventType.MODIFICAR_ATRIBUTO:
+			if event.heroi_id != "":
+				# Modifica o HP de um herói específico usando a função atualizada (com clamp automático)
+				if event.hp_modifier != 0:
+					PlayerData.atualizar_hp_por_id(event.heroi_id, event.hp_modifier)
+			else:
+				# Se heroi_id estiver vazio, aplica o dano/cura no time inteiro ativo de graça!
+				if event.hp_modifier != 0:
+					for id in PlayerData.party_ativa:
+						PlayerData.atualizar_hp_por_id(id, event.hp_modifier)
+						
+		GameEvent.EventType.CURAR_TOTAL:
+			if event.heroi_id != "":
+				var heroi = PlayerData.get_heroi(event.heroi_id)
+				if heroi: heroi.curar_total()
+			else:
+				PlayerData.curar_party_ativa()
 
 # O Combate acabou -> Devolve o jogador para a Exploração
 func _on_combate_terminou(vitoria: bool) -> void:
 	print("🏁 Main: Batalha encerrada! Vitória: ", vitoria, ". Voltando para a Exploração...")
+	
+	# Se a missão NÃO está em andamento (ou seja, era uma missão simples de uma parte só),
+	# nós aplicamos a cura automática de fim de missão aqui!
+	if not PlayerData.missao_em_andamento:
+		PlayerData.curar_party_ativa()
+		
 	_transicionar_para_cena(EXPLORATION_SCENE_PATH)
