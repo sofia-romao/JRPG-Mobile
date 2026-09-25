@@ -3,14 +3,14 @@ class_name EnemyData
 extends Resource
 
 @export var id: String = ""
-@export var nome: String = ""
-@export var cor_tema: Color = Color.WHITE
-@export var sprite_combate: Texture2D
+@export var name: String = ""
+@export var color_theme: Color = Color.WHITE
+@export var combat_sprite: Texture2D
 
 @export_category("Atributos Base")
-@export var hp_base: int = 50
-@export var ataque_base: int = 10
-@export var xp_recompensa: int = 20
+@export var base_hp: int = 50
+@export var base_atk: int = 10
+@export var xp_reward: int = 20
 
 @export_category("Resistências Elementais")
 @export var res_fire: float = 1.0

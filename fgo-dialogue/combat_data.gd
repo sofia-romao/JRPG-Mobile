@@ -7,8 +7,8 @@ extends Resource
 @export var background: Texture2D
 
 @export_category("Desafio")
-@export var inimigo: EnemyData
+@export var enemy: EnemyData
 
 @export_category("Recompensas")
 # Se quiser customizar um evento complexo pós-luta (ex: fechar missão + dar XP)
-@export var evento_vitoria: GameEvent 
+@export var victory_event: GameEvent 

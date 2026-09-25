@@ -1,38 +1,33 @@
 # HeroStatusCard.gd
 extends MarginContainer
 
-@export var nome_label: Label
+@export var name_label: Label
 @export var level_label: Label
 @export var hp_label: Label
 
-var state_associado: HeroState
+var _associated_state: HeroState
 
-# Inicializa o cartão com os dados do Autoload
-func configurar_card(heroi_state: HeroState) -> void:
-	state_associado = heroi_state
-	name = heroi_state.blueprint.id # Facilita encontrar o nó pelo ID depois
+func configurar_card(hero_state: HeroState) -> void:
+	_associated_state = hero_state
+	name = hero_state.blueprint.id 
 	
-	# Preenche os dados iniciais usando os métodos dinâmicos que você criou
-	nome_label.text = heroi_state.blueprint.nome
-	level_label.text = "Lv. " + str(heroi_state.get_nivel())
-	_atualizar_texto_hp(heroi_state.hp_atual, heroi_state.get_max_hp())
+	# Preenche usando as propriedades corrigidas em inglês
+	name_label.text = hero_state.blueprint.character_name
+	level_label.text = "Lv. " + str(hero_state.get_nivel())
+	_update_hp_text(hero_state.hp_atual, hero_state.get_max_hp())
 	
-	# Conecta o sinal de HP do herói para atualizar a UI automaticamente quando ele levar dano
-	# Nota: Certifique-se de que o sinal hp_alterado no seu HeroState passe (novo_hp, max_hp)
-	if heroi_state.has_signal("hp_alterado"):
-		heroi_state.hp_alterado.connect(_on_heroi_hp_alterado)
+	if hero_state.has_signal("hp_alterado") and not hero_state.hp_alterado.is_connected(_on_hero_hp_changed):
+		hero_state.hp_alterado.connect(_on_hero_hp_changed)
 
-func animar_selecao(selecionado: bool) -> void:
+func animar_selecao(selected: bool) -> void:
 	var tween = create_tween()
-	var alvo_margin = 25 if selecionado else 0
-	
-	# Executa o slide out de 25px conforme o escopo do seu projeto
-	tween.tween_property(self, "theme_override_constants/margin_left", alvo_margin, 0.2)\
+	var target_margin = 25 if selected else 0
+	tween.tween_property(self, "theme_override_constants/margin_left", target_margin, 0.2)\
 		.set_trans(Tween.TRANS_CUBIC)\
 		.set_ease(Tween.EASE_OUT)
 
-func _on_heroi_hp_alterado(novo_hp: int, max_hp: int, _mudanca: int) -> void:
-	_atualizar_texto_hp(novo_hp, max_hp)
+func _on_hero_hp_changed(new_hp: int, max_hp: int, _change: int) -> void:
+	_update_hp_text(new_hp, max_hp)
 
-func _atualizar_texto_hp(atual: int, maximo: int) -> void:
-	hp_label.text = "HP: " + str(atual) + "/" + str(maximo)
+func _update_hp_text(current: int, maximum: int) -> void:
+	hp_label.text = "HP: " + str(current) + "/" + str(maximum)

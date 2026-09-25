@@ -2,23 +2,23 @@ class_name HeroState
 extends Resource # Usamos Resource para facilitar o sistema de Save/Load no futuro
 
 @export var blueprint: HeroData
-@export var xp_atual: int = 0
-@export var hp_atual: int = 0
+@export var current_exp: int = 0
+@export var current_hp: int = 0
 
-signal hp_alterado(novo_hp: int, max_hp: int, mudanca: int)
+signal changed_hp(new_hp: int, max_hp: int, change: int)
 
 ## Atualiza o HP garantindo os limites e emite o sinal para a UI mobile
 func modificar_hp(quantidade: int) -> void:
-	var antigo_hp = hp_atual
-	hp_atual = clamp(hp_atual + quantidade, 0, get_max_hp())
-	var mudanca = hp_atual - antigo_hp
+	var old_hp = current_hp
+	current_hp = clamp(current_hp + quantidade, 0, get_max_hp())
+	var change = current_hp - old_hp
 	
-	if mudanca != 0:
-		hp_alterado.emit(hp_atual, get_max_hp(), mudanca)
+	if change != 0:
+		changed_hp.emit(current_hp, get_max_hp(), change)
 
 ## Calcula o nível atual baseado na XP
 func get_nivel() -> int:
-	return int(xp_atual / 1000) + 1
+	return int(current_exp / 1000) + 1
 
 ## Busca o HP base no Blueprint e soma o ganho por nível dinamicamente (100% em Português)
 ## Busca o HP base no Blueprint e soma o ganho por nível dinamicamente
@@ -55,8 +55,8 @@ func get_ataque() -> int:
 	return ataque_base_val + (ataque_por_nivel_val * (get_nivel() - 1))
 
 ## Cura total (usado ao limpar missões)
-func curar_total() -> void:
-	hp_atual = get_max_hp()
+func total_recovery() -> void:
+	current_hp = get_max_hp()
 
 # --- MÉTODOS DE COMPATIBILIDADE COM O COMBAT MANAGER ---
 

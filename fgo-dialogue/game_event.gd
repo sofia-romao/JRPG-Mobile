@@ -1,21 +1,41 @@
+# GameEvent.gd
 extends Resource
 class_name GameEvent
 
-# Adicionamos CURAR_TOTAL para cobrir o caso de fontes de cura ou fim de missões por evento
-enum EventType { 
-	INICIAR_BATALHA, 
+<<<<<<< Updated upstream
+# Definimos os tipos de comandos que um evento pode disparar no seu RPG
+enum EventType { INICIAR_BATALHA, 
 	CONCLUIR_MISSAO, 
-	MODIFICAR_ATRIBUTO,
-	CURAR_TOTAL
+	MODIFICAR_ATRIBUTO}
+=======
+enum ActionType { 
+	NONE, 
+	START_COMBAT, 
+	COMPLETE_MISSION, 
+	MODIFY_ATTRIBUTE,
+	FULL_HEAL 
 }
+>>>>>>> Stashed changes
 
-@export_category("Configuração Geral")
-@export var tipo_evento: EventType = EventType.INICIAR_BATALHA
+@export_category("Dialogue Flow")
+@export var dialogue_lines: Array[StoryLine] = []
+@export var choices: Array[StoryChoice] = []
 
-@export_group("Controle de Missão")
-@export var set_missao_em_andamento: bool = false # Altera o PlayerData.missao_em_andamento
+<<<<<<< Updated upstream
+@export_group("Comandos de Modificação")
+@export var set_missao_em_andamento: bool = false # Seta o PlayerData.missao_em_andamento
+@export var heroi_id: String = ""                 # ID do herói a ser afetado (ex: "mash_01")
+@export var hp_modifier: int = 0                  # Quantidade de HP (ex: -40 para dano, 100 para cura)
+=======
+@export_category("Action Trigger")
+@export var action_type: ActionType = ActionType.NONE
+@export var is_mission_in_progress: bool = false
 
-@export_group("Comandos de Herói")
-@export var heroi_id: String = ""                 # ID do herói (ex: "mash_01")
-@export var hp_modifier: int = 0                  # Negativo para dano, positivo para cura
-@export var xp_recompensa: int = 0                # Caso o evento dê XP (ex: escolha em diálogo)
+@export_group("Target Modification")
+@export var hero_id: String = ""                 
+@export_range(-9999, 9999) var hp_modifier: int = 0                  
+@export var xp_reward: int = 0                
+
+@export_group("Combat Setup")
+@export var combat_data: CombatData 
+>>>>>>> Stashed changes

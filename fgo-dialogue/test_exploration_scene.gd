@@ -1,70 +1,81 @@
+# test_exploration_scene.gd
 extends Control
 
-signal missao_iniciada(story_event: StoryEvent)
-signal missao_abortada
+signal mission_started(event: GameEvent)
+signal mission_aborted
 
-@export var botao_missao: Button
-@export var botao_abortar: Button
+@export var mission_button: Button
+@export var abort_button: Button
+
+# ❄️ Arraste seu arquivo 'jack_frost.tres' aqui pelo painel Inspector!
+@export var test_enemy: EnemyData 
 
 func _ready() -> void:
-	_atualizar_interface_do_mapa()
+	_update_map_ui()
+	if test_enemy == null:
+		push_warning("Exploration: Don't forget to assign 'jack_frost.tres' in the Inspector!")
 
-func _atualizar_interface_do_mapa() -> void:
+func _update_map_ui() -> void:
 	if PlayerData.missao_em_andamento:
-		botao_missao.text = "Continuar Missão (Parte 2)"
-		botao_abortar.visible = true
+		mission_button.text = "Continue Mission (Part 2)"
+		abort_button.visible = true
 	else:
-		botao_missao.text = "Iniciar Missão"
-		botao_abortar.visible = false
+		mission_button.text = "Start Mission"
+		abort_button.visible = false
 
 func _on_botao_missao_pressed() -> void:
-	var evento = StoryEvent.new()
-	var novas_linhas: Array[StoryLine] = []
-	var novas_escolhas: Array[StoryChoice] = []
+	var event = GameEvent.new()
+	var new_lines: Array[StoryLine] = []
+	var new_choices: Array[StoryChoice] = []
 	
 	if not PlayerData.missao_em_andamento:
-		# --- PARTE 1: CONFIGURA O EVENTO QUE TRAVA E DÁ DANO ---
+		# --- PART 1: JACK FROST EMBUSH ---
 		var l1 = StoryLine.new()
 		l1.character_name = "Mash"
-		l1.text = "Senpai! Fomos emboscados no corredor! Ativando defesas!"
-		novas_linhas.append(l1)
+		l1.text = "Senpai! A wild Jack Frost blocks the corridor! Prepare for battle!"
+		new_lines.append(l1)
 		
-		var escolha = StoryChoice.new()
-		escolha.choice_text = "Fugir para a sala segura"
+		# 1. Configura os dados do combate em inglês
+		var combat_setup = CombatData.new()
+		combat_setup.enemy = test_enemy
 		
-		var ev_parte1 = GameEvent.new()
-		ev_parte1.set_missao_em_andamento = true # Manda ligar a flag
-		ev_parte1.heroi_id = "mash_01"
-		ev_parte1.hp_modifier = -40              # Manda tirar 40 de HP
+		# 2. Configura a ação de combate no GameEvent
+		var action_combat = GameEvent.new()
+		action_combat.action_type = GameEvent.ActionType.START_COMBAT
+		action_combat.is_mission_in_progress = true 
+		action_combat.combat_data = combat_setup
 		
-		escolha.trigger_game_event = ev_parte1
-		novas_escolhas.append(escolha)
+		# 3. Injeta a opção no diálogo
+		var choice = StoryChoice.new()
+		choice.choice_text = "Attack Jack Frost!"
+		choice.trigger_game_event = action_combat
+		new_choices.append(choice)
+		
 	else:
-		# --- PARTE 2: CONFIGURA O EVENTO QUE DESTRAVA E CURA ---
+		# --- PART 2: SAFE ROOM REACHED ---
 		var l2 = StoryLine.new()
 		l2.character_name = "Mash"
-		l2.text = "Ufa, chegamos à sala segura! Missão cumprida, time restaurado!"
-		novas_linhas.append(l2)
+		l2.text = "Uff, we defeated it and reached the safe room! Team fully restored!"
+		new_lines.append(l2)
 		
-		var escolha_fim = StoryChoice.new()
-		escolha_fim.choice_text = "Descansar"
+		var choice_end = StoryChoice.new()
+		choice_end.choice_text = "Rest"
 		
-		var ev_parte2 = GameEvent.new()
-		ev_parte2.set_missao_em_andamento = false # Manda desligar a flag
-		ev_parte2.heroi_id = "mash_01"
-		ev_parte2.hp_modifier = 40                 # Manda curar os 40 de HP de volta
+		var action_heal = GameEvent.new()
+		action_heal.action_type = GameEvent.ActionType.FULL_HEAL
+		action_heal.is_mission_in_progress = false 
 		
-		escolha_fim.trigger_game_event = ev_parte2
-		novas_escolhas.append(escolha_fim)
+		choice_end.trigger_game_event = action_heal
+		new_choices.append(choice_end)
 		
-	evento.dialogue_lines = novas_linhas
-	evento.choices = novas_escolhas
-	missao_iniciada.emit(evento)
+	event.dialogue_lines = new_lines
+	event.choices = new_choices
+	
+	print("🚀 [Exploration] Emitting 'mission_started' with Jack Frost setup...")
+	mission_started.emit(event)
 
 func _on_botao_abortar_pressed() -> void:
 	PlayerData.missao_em_andamento = false
-	if PlayerData.colecao_herois.has("mash_01"):
-		PlayerData.colecao_herois["mash_01"]["hp_atual"] = 100
-		
-	print("❌ [Mapa] Missão abortada! Mash foi totalmente curada.")
-	_atualizar_interface_do_mapa()
+	PlayerData.heal_active_party()
+	print("❌ [Exploration] Mission aborted! Team fully healed.")
+	_update_map_ui()

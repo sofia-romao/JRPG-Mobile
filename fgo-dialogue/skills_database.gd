@@ -1,7 +1,6 @@
-# SkillDatabase.gd (Configurar como Autoload)
+# SkillDatabase.gd
 extends Node
 
-# Dicionário que vai guardar as magias indexadas por ID: {"agi_01": SkillData}
 var skills: Dictionary = {}
 
 func _ready() -> void:
@@ -21,12 +20,11 @@ func _load_skills_from_folder() -> void:
 				var data = load(full_path) as SkillData
 				if data:
 					skills[data.id] = data
-					print("🔮 [SkillDatabase] Magia carregada: %s (%s)" % [data.name, data.id])
+					print("🔮 [SkillDatabase] Skill loaded: %s (%s)" % [data.name, data.id])
 			file_name = dir.get_next()
 		dir.list_dir_end()
 	else:
-		print("[SkillDatabase] Pasta de magias não encontrada ou vazia.")
+		print("⚠️ [SkillDatabase] Skills folder not found or empty.")
 
-## Função para buscar a magia pelo ID de texto
 func get_skill(skill_id: String) -> SkillData:
 	return skills.get(skill_id, null)

@@ -2,50 +2,50 @@
 class_name EnemyState
 extends Resource
 
-signal hp_alterado(novo_hp: int, max_hp: int, mudanca: int)
-signal morreu()
+signal hp_changed(new_hp: int, max_hp: int, change: int)
+signal died()
 
 @export var blueprint: EnemyData
 
-var hp_atual: int = 0:
+var current_hp: int = 0:
 	set(valor):
-		var antigo_hp = hp_atual
-		hp_atual = clamp(valor, 0, get_max_hp())
-		var mudanca = hp_atual - antigo_hp
+		var antigo_hp = current_hp
+		current_hp = clamp(valor, 0, get_max_hp())
+		var change = current_hp - antigo_hp
 		
-		if mudanca != 0:
-			hp_alterado.emit(hp_atual, get_max_hp(), mudanca)
+		if change != 0:
+			hp_changed.emit(current_hp, get_max_hp(), change)
 		
-		if hp_atual == 0:
-			morreu.emit()
+		if current_hp == 0:
+			died.emit()
 
-func inicializar(dados_base: EnemyData) -> void:
-	blueprint = dados_base
-	hp_atual = get_max_hp()
+func inicialize(base_data: EnemyData) -> void:
+	blueprint = base_data
+	current_hp = get_max_hp()
 
 func get_max_hp() -> int:
 	if not blueprint: return 0
-	return blueprint.hp_base # Sincronizado com o EnemyData em português!
+	return blueprint.base_hp # Sincronizado com o EnemyData em português!
 
-func get_ataque() -> int:
+func get_attack() -> int:
 	if not blueprint: return 0
-	return blueprint.ataque_base # Sincronizado com o EnemyData em português!
+	return blueprint.base_atk # Sincronizado com o EnemyData em português!
 
 ## Recebe o dano base e o elemento enviado pelo herói.
-func receber_dano_combate(dano_base: int, element_type: String) -> bool:
+func recieve_combat_damage(base_dmg: int, element_type: String) -> bool:
 	if not blueprint: return false
 	
-	var multiplicador: float = 1.0
+	var multiplier: float = 1.0
 	
 	match element_type:
-		"FIRE": multiplicador = blueprint.res_fire
-		"ICE": multiplicador = blueprint.res_ice
-		"ELEC": multiplicador = blueprint.res_elec
-		"PHYSICAL": multiplicador = blueprint.res_physical
+		"FIRE": multiplier = blueprint.res_fire
+		"ICE": multiplier = blueprint.res_ice
+		"ELEC": multiplier = blueprint.res_elec
+		"PHYSICAL": multiplier = blueprint.res_physical
 		
-	var dano_final: int = int(dano_base * multiplicador)
-	hp_atual -= dano_final
+	var final_dmg: int = int(base_dmg * multiplier)
+	current_hp -= final_dmg
 	
-	print("👹 [EnemyState] Monstro tomou %d de dano (%s). HP: %d/%d" % [dano_final, element_type, hp_atual, get_max_hp()])
+	print("👹 [EnemyState] Monstro tomou %d de dano (%s). HP: %d/%d" % [final_dmg, element_type, current_hp, get_max_hp()])
 	
-	return multiplicador > 1.0
+	return multiplier > 1.0

@@ -1,63 +1,64 @@
+# hero_selection_card.gd (Apenas a função de inicialização traduzida)
 extends Button
+signal card_clicked(hero_id: String)
 
-# Sinais para avisar o menu principal que este cartão foi clicado
-signal card_clicked(id_heroi: String)
+@export var avatar_texture: TextureRect
+@export var name_label: Label
+@export var hp_label: Label
+@export var lock_overlay: ColorRect
+@export var margin_container: MarginContainer
 
-@export_category("Componentes Visuais")
-@export var texture: TextureRect
-@export var label_nome: Label
-@export var label_HP: Label
-@export var overlay: ColorRect
-@export var margin: MarginContainer
+var hero_id: String = ""
 
-# Guardamos o ID deste herói para saber quem enviar no sinal de clique
-var heroi_id: String = ""
-
-func _ready() -> void:
-	# Conecta o sinal de clique do próprio botão a uma função local
-	pressed.connect(_on_pressed)
-
-## Função que o menu principal vai chamar para configurar ou atualizar o cartão
-func configurar_cartao(id: String, estado: HeroState, esta_na_party: bool, jogo_trancado: bool) -> void:
-	heroi_id = id
+func initialize_card(id: String, hero_state: HeroState, is_in_party: bool, is_locked: bool) -> void:
+	hero_id = id
+	name_label.text = hero_state.blueprint.character_name
+	hp_label.text = "HP: %d/%d" % [hero_state.current_hp, hero_state.get_max_hp()]
 	
-	# 1. Alimenta os textos e imagens com a nossa nova arquitetura
-	label_nome.text = estado.blueprint.nome
-	label_HP.text = "HP: %d/%d" % [estado.hp_atual, estado.get_max_hp()]
-	
-	if texture and estado.blueprint.icone_avatar:
-		texture.texture = estado.blueprint.icone_avatar
+	if avatar_texture and hero_state.blueprint.avatar_icon:
+		avatar_texture.texture = hero_state.blueprint.avatar_icon
 		
-	# 2. Gerencia o overlay de bloqueio (se a missão composta estiver em andamento)
-	if overlay:
-		overlay.visible = jogo_trancado
-	disabled = jogo_trancado # Desativa o clique se o jogo estiver trancado
+	if lock_overlay:
+		lock_overlay.visible = is_locked
+	disabled = is_locked
 	
-	# 3. Executa a animação de deslizar baseada no estado de seleção
-	_animar_deslocamento(esta_na_party)
+	_animate_displacement(is_in_party)
+var displacement_tween: Tween # Guarda a referência do tween para evitar sobreposição
 
-## Controla o efeito visual de mover o conteúdo para o lado de forma segura
-var meu_tween: Tween # Guardamos a referência do tween no topo do script
 
-func _animar_deslocamento(selecionado: bool) -> void:
-	if not margin: return
+var is_visually_selected: bool = false
+
+func _animate_displacement(selected: bool) -> void:
+	if not margin_container: return
 	
-	# Se já existir uma animação rodando neste cartão, interrompe ela imediatamente
-	if meu_tween and meu_tween.is_valid():
-		meu_tween.kill()
+	# 1. Se o estado visual não mudou, ignora para não estragar tweens ativos
+	if is_visually_selected == selected:
+		return
 		
-	if margin.get("theme_override_constants/margin_left") == null:
-		margin.set("theme_override_constants/margin_left", 0)
+	is_visually_selected = selected
 
-	var valor_alvo = 25 if selecionado else 0
+	# 2. ESPERA UM FRAME: Dá tempo para o ScrollContainer/GridContainer terminar de 
+	# calcular o layout inicial da tela e não atropelar o nosso Tween!
+	await get_tree().process_frame
 	
-	# 🛠️ SÓ ANIMA SE O VALOR MUDOU: Se o cartão já está na posição certa, não faz nada!
-	if margin.get("theme_override_constants/margin_left") == valor_alvo:
+	# Proteção caso o cartão tenha sido deletado enquanto esperávamos o frame
+	if not is_inside_tree() or not margin_container: 
 		return
 
-	meu_tween = create_tween().set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_QUAD)
-	meu_tween.tween_property(margin, "theme_override_constants/margin_left", valor_alvo, 0.15)
+	if displacement_tween and displacement_tween.is_valid():
+		displacement_tween.kill()
 
-## Quando o jogador clica no cartão, avisa o menu principal enviando o ID
-func _on_pressed() -> void:
-	card_clicked.emit(heroi_id)
+	# 3. Em vez de mover o nó fisicamente (o que o contêiner proíbe),
+	# nós alteramos a margem interna real usando a sintaxe segura do Godot 4
+	var target_margin = 25 if selected else 0
+	var current_margin = margin_container.get_theme_constant("margin_left")
+
+	displacement_tween = create_tween().set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
+	
+	# Animamos a margem interna. Isso força o conteúdo a deslizar de forma nativa e segura!
+	displacement_tween.tween_method(
+		func(val: int): margin_container.add_theme_constant_override("margin_left", val),
+		current_margin,
+		target_margin,
+		0.18
+	)
