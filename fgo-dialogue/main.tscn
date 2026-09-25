@@ -1,9 +1,0 @@
-[gd_scene format=3 uid="uid://dv3q36sendh72"]
-
-[ext_resource type="Script" uid="uid://cik0r7kimoruy" path="res://main.gd" id="1_ig7tw"]
-
-[node name="Main" type="Node" unique_id=1439246879 node_paths=PackedStringArray("scene_container")]
-script = ExtResource("1_ig7tw")
-scene_container = NodePath("SceneContainer")
-
-[node name="SceneContainer" type="Node" parent="." unique_id=1708542841]

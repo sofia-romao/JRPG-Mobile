@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="HeroData" format=3 uid="uid://0gfwfgwo4p3f"]
+
+[ext_resource type="Script" uid="uid://bln4pkc2ot1or" path="res://hero_data.gd" id="1_hksuq"]
+[ext_resource type="Texture2D" uid="uid://bwi77x5m5uiut" path="res://icon.svg" id="1_qwesp"]
+
+[resource]
+script = ExtResource("1_hksuq")
+id = "altria"
+nome = "Altria"
+cor_tema = Color(0.41359308, 0.70002633, 1, 1)
+icone_avatar = ExtResource("1_qwesp")
+metadata/_custom_type_script = "uid://bln4pkc2ot1or"

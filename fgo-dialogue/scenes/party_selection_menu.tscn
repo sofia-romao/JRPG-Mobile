@@ -1,0 +1,37 @@
+[gd_scene format=3 uid="uid://bfktfdy7yeljp"]
+
+[ext_resource type="Script" uid="uid://bt5y80jos8jvv" path="res://party_selection_menu.gd" id="1_axaai"]
+[ext_resource type="PackedScene" uid="uid://cavqlxggfvlb1" path="res://scenes/hero_selection_card.tscn" id="2_7xtmb"]
+
+[node name="PartySelectionMenu" type="Control" unique_id=928408070 node_paths=PackedStringArray("grid_container", "label_aviso_trancado")]
+custom_minimum_size = Vector2(800, 500)
+layout_mode = 3
+anchors_preset = 11
+anchor_left = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 0
+grow_vertical = 2
+script = ExtResource("1_axaai")
+card_prefab = ExtResource("2_7xtmb")
+grid_container = NodePath("ScrollContainer/HeroGrid")
+label_aviso_trancado = NodePath("LabelAvisoTrancado")
+
+[node name="ScrollContainer" type="ScrollContainer" parent="." unique_id=1790750672]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="HeroGrid" type="GridContainer" parent="ScrollContainer" unique_id=1782616274]
+layout_mode = 2
+
+[node name="LabelAvisoTrancado" type="Label" parent="." unique_id=63054580]
+custom_minimum_size = Vector2(80, 60)
+layout_mode = 0
+offset_left = 92.52106
+offset_top = 270.44162
+offset_right = 320.52106
+offset_bottom = 404.44162

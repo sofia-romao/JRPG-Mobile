@@ -1,0 +1,52 @@
+[gd_scene format=3 uid="uid://cavqlxggfvlb1"]
+
+[ext_resource type="Script" uid="uid://jqdusinyvvaf" path="res://hero_selection_card.gd" id="1_k8dh0"]
+
+[node name="HeroSelectionCard" type="Button" unique_id=1703486652 node_paths=PackedStringArray("texture", "label_nome", "label_HP", "overlay", "margin")]
+custom_minimum_size = Vector2(600, 80)
+offset_right = 600.0
+offset_bottom = 80.0
+script = ExtResource("1_k8dh0")
+texture = NodePath("MarginContainer/TextureRect")
+label_nome = NodePath("MarginContainer/HBoxContainer/LabelNome")
+label_HP = NodePath("MarginContainer/HBoxContainer/LabelHP")
+overlay = NodePath("OverlayTrancado")
+margin = NodePath("MarginContainer")
+
+[node name="MarginContainer" type="MarginContainer" parent="." unique_id=2129938305]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_bottom = -4.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 0
+theme_override_constants/margin_top = 0
+theme_override_constants/margin_right = 0
+theme_override_constants/margin_bottom = 0
+
+[node name="TextureRect" type="TextureRect" parent="MarginContainer" unique_id=671201493]
+layout_mode = 2
+stretch_mode = 5
+
+[node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer" unique_id=708147872]
+layout_mode = 2
+
+[node name="LabelNome" type="Label" parent="MarginContainer/HBoxContainer" unique_id=1776354760]
+custom_minimum_size = Vector2(100, 80)
+layout_mode = 2
+
+[node name="LabelHP" type="Label" parent="MarginContainer/HBoxContainer" unique_id=193720062]
+custom_minimum_size = Vector2(100, 80)
+layout_mode = 2
+
+[node name="OverlayTrancado" type="ColorRect" parent="." unique_id=247004520]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.011764706, 0.011764706, 0.011764706, 0.38431373)
