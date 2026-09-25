@@ -1,71 +1,62 @@
+# main.gd
 extends Node
 class_name MainController
 
 @export_category("Containers")
 @export var scene_container: Node
 
-# Caminhos absolutos das três cenas equivalentes
 const EXPLORATION_SCENE_PATH = "res://test_exploration_scene.tscn"
 const DIALOGUE_SCENE_PATH = "res://scenes/dialogue_box.tscn"
 const COMBAT_SCENE_PATH = "res://scenes/combat_arena.tscn"
 
 var _current_active_scene: Node = null
+var _current_combat_data: CombatData = null
 
 func _ready() -> void:
 	if scene_container == null:
-		push_error("Main: O nó 'SceneContainer' não foi atribuído no Inspector!")
+		push_error("Main: The 'scene_container' node was not assigned in the Inspector!")
 		return
-		
-	# O jogo começa direto no ambiente de Exploração/Menus
-	_transicionar_para_cena(EXPLORATION_SCENE_PATH)
+	_transition_to_scene(EXPLORATION_SCENE_PATH)
 
-## Remove o ambiente anterior da memória e instancia o próximo de forma limpa
-func _transicionar_para_cena(caminho_da_scene: String) -> Node:
+func _transition_to_scene(scene_path: String) -> Node:
 	if _current_active_scene != null:
 		_current_active_scene.queue_free()
 		_current_active_scene = null
 		
-	var recurso_cena = load(caminho_da_scene)
-	if recurso_cena == null:
-		push_error("Main: Falha ao carregar a cena em: " + caminho_da_scene)
+	var scene_resource = load(scene_path)
+	if scene_resource == null:
+		push_error("Main: Failed to load scene at: " + scene_path)
 		return null
 		
-	var nova_instancia = recurso_cena.instantiate()
-	scene_container.add_child(nova_instancia)
-	_current_active_scene = nova_instancia
+	var new_instance = scene_resource.instantiate()
+	scene_container.add_child(new_instance)
+	_current_active_scene = new_instance
 	
-	# Conecta os sinais do novo ambiente que acabou de nascer
-	_conectar_sinais_da_cena_ativa(nova_instancia)
-	
-	return nova_instancia
+	_connect_active_scene_signals(new_instance)
+	return new_instance
 
-## Escuta os sinais de término de cada um dos 3 ambientes
-func _conectar_sinais_da_cena_ativa(cena: Node) -> void:
-	# 1. Se a cena ativa for a EXPLORAÇÃO
-	if cena.has_signal("missao_iniciada"):
-		cena.connect("missao_iniciada", _on_exploracao_solicitou_dialogo)
+func _connect_active_scene_signals(scene: Node) -> void:
+	# 1. Exploration Scene
+	if scene.has_signal("mission_started"):
+		scene.connect("mission_started", _on_exploration_requested_dialogue)
 		
-	# 2. Se a cena ativa for o DIÁLOGO (Nosso DialogueManager que emite sinais)
-	if cena.has_signal("dialogue_finished"):
-		cena.connect("dialogue_finished", _on_dialogue_terminou)
-	if cena.has_signal("game_event_triggered"):
-		cena.connect("game_event_triggered", _on_dialogue_disparou_evento)
+	# 2. Dialogue Manager
+	if scene is DialogueManager:
+		scene.dialogue_finished.connect(_on_dialogue_finished)
+		scene.game_event_triggered.connect(_on_dialogue_triggered_event)
 		
-	# 3. Se a cena ativa for o COMBATE
-	if cena.has_signal("combate_concluido"):
-		cena.connect("combate_concluido", _on_combate_terminou)
+	# 3. Combat Manager
+	if scene is CombatManager:
+		scene.combat_finished.connect(_on_combat_finished)
 
-# --- RECEPTORES DE SINAIS (MÁQUINA DE ESTADOS DA MAIN) ---
+# --- SIGNAL RECEIVERS ---
 
-# O jogador clicou em algo na Exploração -> Transiciona para o ambiente de Diálogo
-func _on_exploracao_solicitou_dialogo(story_event: StoryEvent) -> void:
-	print("🔄 Main: Saindo da Exploração e instanciando o Diálogo...")
-	var tela_dialogo = _transicionar_para_cena(DIALOGUE_SCENE_PATH) as DialogueManager
-	
-	if tela_dialogo:
-		# Injeta o dado e dá o play no diálogo que acabou de nascer!
-		tela_dialogo.start_dialogue(story_event)
+func _on_exploration_requested_dialogue(event: GameEvent) -> void:
+	var dialogue_box = _transition_to_scene(DIALOGUE_SCENE_PATH) as DialogueManager
+	if dialogue_box:
+		dialogue_box.start_dialogue(event)
 
+<<<<<<< Updated upstream
 # O Diálogo acabou normalmente (sem lutas) -> Devolve o jogador para a Exploração
 func _on_dialogue_terminou() -> void:
 	# 🔴 O SEGREDO ESTÁ AQUI: Espera um frame para garantir que os sinais 
@@ -95,3 +86,65 @@ func _on_dialogue_disparou_evento(event: GameEvent) -> void:
 func _on_combate_terminou(vitoria: bool) -> void:
 	print("🏁 Main: Batalha encerrada! Vitória: ", vitoria, ". Voltando para a Exploração...")
 	_transicionar_para_cena(EXPLORATION_SCENE_PATH)
+=======
+func _on_dialogue_finished() -> void:
+	await get_tree().process_frame
+	_transition_to_scene(EXPLORATION_SCENE_PATH)
+
+func _on_dialogue_triggered_event(event: GameEvent) -> void:
+	if event == null: return
+	
+	PlayerData.missao_em_andamento = event.is_mission_in_progress
+	
+	match event.action_type:
+		GameEvent.ActionType.START_COMBAT:
+			if event.combat_data == null:
+				push_error("Main: START_COMBAT triggered but combat_data is null!")
+				return
+				
+			print("⚔️ Main: Dialogue event triggered combat! Transitioning...")
+			_current_combat_data = event.combat_data
+			
+			var combat_arena = _transition_to_scene(COMBAT_SCENE_PATH) as CombatManager
+			if combat_arena:
+				combat_arena.initialize_combat(_current_combat_data)
+			
+		GameEvent.ActionType.COMPLETE_MISSION:
+			PlayerData.missao_em_andamento = false
+			PlayerData.curar_party_ativa()
+			
+		GameEvent.ActionType.MODIFY_ATTRIBUTE:
+			if event.hero_id != "":
+				if event.hp_modifier != 0: 
+					PlayerData.atualizar_hp_por_id(event.hero_id, event.hp_modifier)
+			else:
+				if event.hp_modifier != 0:
+					for id in PlayerData.party_ativa: 
+						PlayerData.atualizar_hp_por_id(id, event.hp_modifier)
+						
+		GameEvent.ActionType.FULL_HEAL:
+			if event.hero_id != "":
+				var hero = PlayerData.get_heroi(event.hero_id)
+				if hero: hero.curar_total()
+			else:
+				PlayerData.heal_active_party()
+
+func _on_combat_finished(victory: bool) -> void:
+	print("🏁 Main: Combat finished! Victory: ", victory)
+	
+	if victory:
+		if _current_combat_data and _current_combat_data.victory_event != null:
+			var post_combat_event = _current_combat_data.victory_event
+			_current_combat_data = null
+			_on_dialogue_triggered_event(post_combat_event)
+			return
+			
+		if not PlayerData.missao_em_andamento:
+			PlayerData.curar_party_ativa()
+			
+		_current_combat_data = null
+		_transition_to_scene(EXPLORATION_SCENE_PATH)
+	else:
+		print("☠️ Main: Player defeated! Game Over logic goes here.")
+		_current_combat_data = null
+>>>>>>> Stashed changes
