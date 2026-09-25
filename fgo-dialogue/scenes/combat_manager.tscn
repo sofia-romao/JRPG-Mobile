@@ -1,0 +1,152 @@
+[gd_scene format=3 uid="uid://5g3dxxoho3sn"]
+
+[ext_resource type="Script" uid="uid://db467t75ihaqi" path="res://combat_manager.gd" id="1_w318q"]
+[ext_resource type="PackedScene" uid="uid://772p2rwij28s" path="res://scenes/damage_popup.tscn" id="2_iekp2"]
+[ext_resource type="Texture2D" uid="uid://bwi77x5m5uiut" path="res://icon.svg" id="2_yvt8h"]
+[ext_resource type="Script" uid="uid://2qf1pi0robua" path="res://resources/heroes/command_menu.gd" id="3_iekp2"]
+
+[node name="CombatManager" type="Node" unique_id=1214775926 node_paths=PackedStringArray("enemy_sprite", "background_texture", "ui_heroes_container", "ui_command_buttons", "ui_skill_announcer", "enemy_hp_bar")]
+script = ExtResource("1_w318q")
+damage_popup_scene = ExtResource("2_iekp2")
+enemy_sprite = NodePath("VisualArea/EnemySprite")
+background_texture = NodePath("VisualArea/BackgroundTexture")
+ui_heroes_container = NodePath("UIArea/MainMobileLayout/PartyPanel/PartyContainer")
+ui_command_buttons = NodePath("UIArea/MainMobileLayout/CommandMenu")
+ui_skill_announcer = NodePath("VisualArea/EnemySprite/Panel/Label")
+enemy_hp_bar = NodePath("VisualArea/EnemySprite/EnemyHPBar")
+
+[node name="AudioStreamPlayer" type="AudioStreamPlayer" parent="." unique_id=1230456112]
+
+[node name="VisualArea" type="Control" parent="." unique_id=84307575]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="BackgroundTexture" type="TextureRect" parent="VisualArea" unique_id=1241239705]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+stretch_mode = 5
+
+[node name="EnemySprite" type="TextureRect" parent="VisualArea" unique_id=806145300]
+layout_mode = 0
+offset_left = 333.46857
+offset_top = 202.66602
+offset_right = 461.46857
+offset_bottom = 330.66602
+texture = ExtResource("2_yvt8h")
+
+[node name="EnemyHPBar" type="ProgressBar" parent="VisualArea/EnemySprite" unique_id=1202804541]
+layout_mode = 0
+offset_left = -35.0
+offset_top = -37.0
+offset_right = 158.0
+offset_bottom = -10.0
+
+[node name="Panel" type="Panel" parent="VisualArea/EnemySprite" unique_id=169945745]
+visible = false
+layout_mode = 0
+offset_left = 9.753845
+offset_top = -79.03205
+offset_right = 115.875305
+offset_bottom = -49.83805
+
+[node name="Label" type="Label" parent="VisualArea/EnemySprite/Panel" unique_id=732064885]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+text = "Agi"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="UIArea" type="CanvasLayer" parent="." unique_id=154824833]
+
+[node name="MainMobileLayout" type="VBoxContainer" parent="UIArea" unique_id=1881032632]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Spacer" type="Control" parent="UIArea/MainMobileLayout" unique_id=961185898]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="DialogueBox" type="PanelContainer" parent="UIArea/MainMobileLayout" unique_id=1263481209]
+layout_mode = 2
+
+[node name="DialogueLabel" type="RichTextLabel" parent="UIArea/MainMobileLayout/DialogueBox" unique_id=1767918853]
+layout_mode = 2
+
+[node name="PartyPanel" type="PanelContainer" parent="UIArea/MainMobileLayout" unique_id=97544341]
+layout_mode = 2
+
+[node name="PartyContainer" type="VBoxContainer" parent="UIArea/MainMobileLayout/PartyPanel" unique_id=1476951508]
+layout_mode = 2
+
+[node name="Hero1_Status" type="HBoxContainer" parent="UIArea/MainMobileLayout/PartyPanel/PartyContainer" unique_id=243772826]
+layout_mode = 2
+
+[node name="Hero2_Status" type="HBoxContainer" parent="UIArea/MainMobileLayout/PartyPanel/PartyContainer" unique_id=508239726]
+layout_mode = 2
+
+[node name="Hero3_Status" type="HBoxContainer" parent="UIArea/MainMobileLayout/PartyPanel/PartyContainer" unique_id=1086664107]
+layout_mode = 2
+
+[node name="CommandMenu" type="PanelContainer" parent="UIArea/MainMobileLayout" unique_id=615045947 node_paths=PackedStringArray("combat_manager")]
+layout_mode = 2
+script = ExtResource("3_iekp2")
+combat_manager = NodePath("../../..")
+
+[node name="MenuContexts" type="MarginContainer" parent="UIArea/MainMobileLayout/CommandMenu" unique_id=1352630335]
+layout_mode = 2
+
+[node name="MainButtons" type="GridContainer" parent="UIArea/MainMobileLayout/CommandMenu/MenuContexts" unique_id=574079896]
+layout_mode = 2
+columns = 2
+
+[node name="AttackButton" type="Button" parent="UIArea/MainMobileLayout/CommandMenu/MenuContexts/MainButtons" unique_id=2099042336]
+custom_minimum_size = Vector2(50, 50)
+layout_mode = 2
+text = "Lutar
+"
+
+[node name="SkillsButton" type="Button" parent="UIArea/MainMobileLayout/CommandMenu/MenuContexts/MainButtons" unique_id=1628132285]
+custom_minimum_size = Vector2(50, 50)
+layout_mode = 2
+text = "Skill"
+
+[node name="ItemsButton" type="Button" parent="UIArea/MainMobileLayout/CommandMenu/MenuContexts/MainButtons" unique_id=497166516]
+custom_minimum_size = Vector2(50, 50)
+layout_mode = 2
+text = "Item
+"
+
+[node name="RunButton" type="Button" parent="UIArea/MainMobileLayout/CommandMenu/MenuContexts/MainButtons" unique_id=828077455]
+custom_minimum_size = Vector2(50, 50)
+layout_mode = 2
+text = "Fuga
+"
+
+[node name="SkillsSubMenu" type="ScrollContainer" parent="UIArea/MainMobileLayout/CommandMenu/MenuContexts" unique_id=1869167631]
+visible = false
+layout_mode = 2
+
+[node name="SkillsList" type="VBoxContainer" parent="UIArea/MainMobileLayout/CommandMenu/MenuContexts/SkillsSubMenu" unique_id=564479411]
+layout_mode = 2
+
+[node name="ItemsSubMenu" type="ScrollContainer" parent="UIArea/MainMobileLayout/CommandMenu/MenuContexts" unique_id=2080177807]
+visible = false
+layout_mode = 2
+
+[node name="ItemsList" type="VBoxContainer" parent="UIArea/MainMobileLayout/CommandMenu/MenuContexts/ItemsSubMenu" unique_id=696869270]
+layout_mode = 2

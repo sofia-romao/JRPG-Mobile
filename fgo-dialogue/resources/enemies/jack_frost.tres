@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="EnemyData" format=3 uid="uid://bq7otrd6fpk42"]
+
+[ext_resource type="Script" uid="uid://yr4eb4cde4y1" path="res://enemy_data.gd" id="1_shcoj"]
+[ext_resource type="Texture2D" uid="uid://bwi77x5m5uiut" path="res://icon.svg" id="2_rvquh"]
+
+[resource]
+script = ExtResource("1_shcoj")
+id = "enemy_test_01"
+nome = "Jack Frost"
+cor_tema = Color(0.26425493, 0.58562875, 0.93292433, 1)
+sprite_combate = ExtResource("2_rvquh")
+hp_base = 80
+ataque_base = 12
+res_fire = 2.0
+res_ice = 0.0
+metadata/_custom_type_script = "uid://yr4eb4cde4y1"

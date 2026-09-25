@@ -7,7 +7,7 @@ class_name MainController
 # Caminhos absolutos das três cenas equivalentes
 const EXPLORATION_SCENE_PATH = "res://test_exploration_scene.tscn"
 const DIALOGUE_SCENE_PATH = "res://scenes/dialogue_box.tscn"
-const COMBAT_SCENE_PATH = "res://scenes/combat_arena.tscn"
+const COMBAT_SCENE_PATH = "res://scenes/combat_manager.tscn"
 
 var _current_active_scene: Node = null
 

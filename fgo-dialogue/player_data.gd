@@ -68,8 +68,15 @@ func _carregar_herois_da_pasta() -> void:
 					novo_estado.curar_total()
 					
 					colecao_herois[data.id] = novo_estado
-					print("📦 [PlayerData] Herói carregado automaticamente: %s" % data.nome)
-					
+					# Como deve ficar corrigido:
+					var nome_para_print = "Herói"
+					if "nome" in data:
+						nome_para_print = data.nome
+					elif "character_name" in data:
+						nome_para_print = data.character_name
+
+					print("📦 [PlayerData] Herói carregado automaticamente: %s" % nome_para_print)
+
 			nome_arquivo = dir.get_next()
 		dir.list_dir_end()
 	else:
