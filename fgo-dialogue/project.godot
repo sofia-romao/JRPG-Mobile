@@ -19,6 +19,7 @@ config/icon="res://icon.svg"
 
 PlayerData="*uid://6xoujgithhsj"
 SkillsDatabase="*uid://bvj8bwvxg4sui"
+SaveManager="*uid://dpp6kcjhxhxg2"
 
 [display]
 

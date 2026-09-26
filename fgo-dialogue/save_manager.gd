@@ -1,11 +1,10 @@
 # save_manager.gd
 extends Node
-class_name SaveManager
 
 const SAVE_PATH = "user://savegame.tres" # ◄ Agora salva como recurso nativo do Godot!
 
 ## Cria o resource de save, injeta os dados globais e grava no disco
-static func save_game() -> void:
+func save_game() -> void:
 	var save_res = SaveGameData.new()
 	
 	# Passa as variáveis simples do Autoload para o Resource
@@ -30,7 +29,7 @@ static func save_game() -> void:
 		push_error("❌ [SaveManager] Failed to save resource file! Error code: ", error)
 
 ## Carrega o Resource do disco e devolve as variáveis para o PlayerData
-static func load_game() -> bool:
+func load_game() -> bool:
 	if not ResourceLoader.exists(SAVE_PATH):
 		print("⚠️ [SaveManager] No save resource found.")
 		return false

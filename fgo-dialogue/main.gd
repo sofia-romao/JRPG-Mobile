@@ -16,6 +16,12 @@ func _ready() -> void:
 	if scene_container == null:
 		push_error("Main: The 'scene_container' node was not assigned in the Inspector!")
 		return
+		
+	# --- 📂 CARREGAMENTO AUTOMÁTICO AO LIGAR O JOGO ---
+	if SaveManager.has_method("load_game"):
+		SaveManager.load_game()
+	# -------------------------------------------------
+	
 	_transition_to_scene(EXPLORATION_SCENE_PATH)
 
 func _transition_to_scene(scene_path: String) -> Node:
@@ -36,26 +42,26 @@ func _transition_to_scene(scene_path: String) -> Node:
 	return new_instance
 
 func _connect_active_scene_signals(scene: Node) -> void:
-	# 1. Exploration Scene
+	# 1. Exploration Scene (Menu Unificado)
 	if scene.has_signal("mission_started"):
 		scene.connect("mission_started", _on_exploration_requested_dialogue)
 		
-	# 2. Dialogue Manager
-	if scene is DialogueManager:
-		scene.dialogue_finished.connect(_on_dialogue_finished)
-		scene.game_event_triggered.connect(_on_dialogue_triggered_event)
+	# 2. Dialogue Manager (Blindado por detecção de sinal)
+	if scene.has_signal("game_event_triggered"):
+		scene.connect("dialogue_finished", _on_dialogue_finished)
+		scene.connect("game_event_triggered", _on_dialogue_triggered_event)
 		
-	# 3. Combat Manager
-	if scene is CombatManager:
-		scene.combat_finished.connect(_on_combat_finished)
+	# 3. Combat Manager (Blindado por detecção de sinal)
+	if scene.has_signal("combat_finished"):
+		scene.connect("combat_finished", _on_combat_finished)
+		print("🔗 Main: Connected Combat signals successfully!")
 
 # --- SIGNAL RECEIVERS ---
 
 func _on_exploration_requested_dialogue(event: GameEvent) -> void:
-	var dialogue_box = _transition_to_scene(DIALOGUE_SCENE_PATH) as DialogueManager
-	if dialogue_box:
+	var dialogue_box = _transition_to_scene(DIALOGUE_SCENE_PATH)
+	if dialogue_box and dialogue_box.has_method("start_dialogue"):
 		dialogue_box.start_dialogue(event)
-
 
 func _on_dialogue_finished() -> void:
 	await get_tree().process_frame
@@ -79,8 +85,8 @@ func _on_dialogue_triggered_event(event: GameEvent) -> void:
 			print("⚔️ Main: Dialogue event triggered combat! Transitioning...")
 			_current_combat_data = event.combat_data
 			
-			var combat_arena = _transition_to_scene(COMBAT_SCENE_PATH) as CombatManager
-			if combat_arena:
+			var combat_arena = _transition_to_scene(COMBAT_SCENE_PATH)
+			if combat_arena and combat_arena.has_method("initialize_combat"):
 				combat_arena.initialize_combat(_current_combat_data)
 			
 		GameEvent.ActionType.COMPLETE_MISSION:
@@ -93,13 +99,14 @@ func _on_dialogue_triggered_event(event: GameEvent) -> void:
 					PlayerData.update_hp_by_id(event.hero_id, event.hp_modifier)
 			else:
 				if event.hp_modifier != 0:
-					for id in PlayerData.party_ativa: 
+					for id in PlayerData.active_party: 
 						PlayerData.update_hp_by_id(id, event.hp_modifier)
 						
 		GameEvent.ActionType.FULL_HEAL:
 			if event.hero_id != "":
 				var hero = PlayerData.get_hero(event.hero_id)
-				if hero: hero.full_heal()
+				if hero and hero.has_method("total_recovery"): 
+					hero.total_recovery()
 			else:
 				PlayerData.heal_active_party()
 
@@ -107,6 +114,16 @@ func _on_combat_finished(victory: bool) -> void:
 	print("🏁 Main: Combat finished! Victory: ", victory)
 	
 	if victory:
+		# 1. Registra o ID da missão na lista de concluídas antes de salvar
+		if not PlayerData.active_mission_id.is_empty():
+			if not PlayerData.completed_missions.has(PlayerData.active_mission_id):
+				PlayerData.completed_missions.append(PlayerData.active_mission_id)
+				print("🏅 [Main] Mission added to completed list: ", PlayerData.active_mission_id)
+		
+		# 2. 💾 SALVAMENTO ATIVADO (Chama o seu Autoload de forma direta)
+		if SaveManager.has_method("save_game"):
+			SaveManager.save_game()
+		
 		if _current_combat_data and _current_combat_data.victory_event != null:
 			var post_combat_event = _current_combat_data.victory_event
 			_current_combat_data = null
