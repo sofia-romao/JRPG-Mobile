@@ -3,7 +3,7 @@
 [ext_resource type="Script" uid="uid://db467t75ihaqi" path="res://combat_manager.gd" id="1_w318q"]
 [ext_resource type="PackedScene" uid="uid://772p2rwij28s" path="res://scenes/damage_popup.tscn" id="2_iekp2"]
 [ext_resource type="Texture2D" uid="uid://bwi77x5m5uiut" path="res://icon.svg" id="2_yvt8h"]
-[ext_resource type="Script" uid="uid://2qf1pi0robua" path="res://resources/heroes/command_menu.gd" id="3_iekp2"]
+[ext_resource type="Script" uid="uid://2qf1pi0robua" path="res://command_menu.gd" id="3_iekp2"]
 [ext_resource type="PackedScene" uid="uid://dtka1msgfngt8" path="res://scenes/hero_status_card.tscn" id="4_iekp2"]
 
 [node name="CombatManager" type="Node" unique_id=1214775926 node_paths=PackedStringArray("enemy_sprite", "background_texture", "ui_heroes_container", "ui_command_buttons", "ui_skill_announcer", "enemy_hp_bar")]
@@ -14,7 +14,7 @@ enemy_sprite = NodePath("VisualArea/EnemySprite")
 background_texture = NodePath("VisualArea/BackgroundTexture")
 ui_heroes_container = NodePath("UIArea/MainMobileLayout/PartyPanel/PartyContainer")
 ui_command_buttons = NodePath("UIArea/MainMobileLayout/CommandMenu")
-ui_skill_announcer = NodePath("VisualArea/EnemySprite/Panel/Label")
+ui_skill_announcer = NodePath("VisualArea/EnemySprite/UISkillAnnouncer/UISkillAnnouncerLabel")
 enemy_hp_bar = NodePath("VisualArea/EnemySprite/EnemyHPBar")
 
 [node name="AudioStreamPlayer" type="AudioStreamPlayer" parent="." unique_id=1230456112]
@@ -51,21 +51,21 @@ offset_top = -37.0
 offset_right = 158.0
 offset_bottom = -10.0
 
-[node name="Panel" type="Panel" parent="VisualArea/EnemySprite" unique_id=169945745]
-visible = false
+[node name="UISkillAnnouncer" type="Panel" parent="VisualArea/EnemySprite" unique_id=169945745]
 layout_mode = 0
 offset_left = 9.753845
 offset_top = -79.03205
 offset_right = 115.875305
 offset_bottom = -49.83805
 
-[node name="Label" type="Label" parent="VisualArea/EnemySprite/Panel" unique_id=732064885]
+[node name="UISkillAnnouncerLabel" type="Label" parent="VisualArea/EnemySprite/UISkillAnnouncer" unique_id=732064885]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
 text = "Agi"
 horizontal_alignment = 1
 vertical_alignment = 1
@@ -132,14 +132,14 @@ text = "Fuga
 "
 
 [node name="SkillsSubMenu" type="ScrollContainer" parent="UIArea/MainMobileLayout/CommandMenu/MenuContexts" unique_id=1869167631]
-visible = false
+custom_minimum_size = Vector2(80, 80)
 layout_mode = 2
 
 [node name="SkillsList" type="VBoxContainer" parent="UIArea/MainMobileLayout/CommandMenu/MenuContexts/SkillsSubMenu" unique_id=564479411]
+custom_minimum_size = Vector2(80, 80)
 layout_mode = 2
 
 [node name="ItemsSubMenu" type="ScrollContainer" parent="UIArea/MainMobileLayout/CommandMenu/MenuContexts" unique_id=2080177807]
-visible = false
 layout_mode = 2
 
 [node name="ItemsList" type="VBoxContainer" parent="UIArea/MainMobileLayout/CommandMenu/MenuContexts/ItemsSubMenu" unique_id=696869270]

@@ -124,20 +124,93 @@ func execute_hero_skill(skill: SkillData) -> void:
 	var hero_id = active_party_ids[current_hero_index]
 	var hero_state = PlayerData.get_hero(hero_id)
 	
+	# --- 🧠 SMT SYSTEM: CÁLCULO E VALIDAÇÃO DE CUSTOS ---
+	if skill.element_type == "PHYSICAL":
+		# Skills físicas custam uma porcentagem do HP Máximo (ex: mp_cost = 15 significa 15% do Max HP)
+		var hp_cost: int = int(hero_state.get_max_hp() * (skill.mp_cost / 100.0))
+		
+		# Regra de SMT: Você precisa ter mais HP do que o custo exige para conjurar (não pode se matar pagando custo)
+		if hero_state.current_hp <= hp_cost:
+			print("❌ [Combat] %s doesn't have enough HP to use %s! Cost: %d HP" % [hero_state.blueprint.character_name, skill.name, hp_cost])
+			input_blocked = false # Libera a UI para o jogador escolher outra coisa
+			return
+			
+		# Paga o custo em HP
+		hero_state.modify_hp(-hp_cost)
+		print("🩸 [Combat] %s paid %d HP to cast %s." % [hero_state.blueprint.character_name, hp_cost, skill.name])
+		_update_hero_ui_display(hero_id) # Atualiza a barrinha de HP do herói na tela imediatamente
+		
+	else:
+		# Habilidades mágicas (Agi, Bufu, Zio) custam MP fixo comum
+		if hero_state.current_mp < skill.mp_cost:
+			print("❌ [Combat] %s doesn't have enough MP to use %s! Needs: %d MP" % [hero_state.blueprint.character_name, skill.name, skill.mp_cost])
+			input_blocked = false
+			return
+			
+		# Paga o custo em MP
+		hero_state.modify_mp(-skill.mp_cost)
+		print("🔮 [Combat] %s paid %d MP to cast %s." % [hero_state.blueprint.character_name, skill.mp_cost, skill.name])
+		_update_hero_ui_display(hero_id) # Atualiza o status na tela
+	# ----------------------------------------------------
+	
+	# Executa o rito de dano normal contra o monstro
 	var damage_base: int = int(hero_state.get_attack() * skill.damage_multiplier)
 	spawned_enemy.receive_combat_damage(damage_base, skill.element_type)
 	_trigger_enemy_damage_popup(damage_base, skill.element_type)
 	
 	_run_state_based_actions()
 	
+	# CORRIGIDO: Removida a duplicidade do '_finish_current_hero_turn()' que estava duplicando turnos fantasmas [9]
 	if current_state == CombatState.HERO_TURN:
 		_finish_current_hero_turn()
+
+## Executa a cura em um único herói selecionado via menu textual [8]
+func execute_hero_single_heal(target_hero: HeroState, skill: SkillData) -> void:
+	var caster_id = active_party_ids[current_hero_index]
+	var caster_state = PlayerData.get_hero(caster_id)
+	
+	# Cobra o custo de MP do conjurador
+	caster_state.modify_mp(-skill.mp_cost)
+	_update_hero_ui_display(caster_id)
+	
+	# Calcula o valor da cura baseado no ataque/magia do herói
+	var heal_amount: int = int(caster_state.get_attack() * skill.damage_multiplier)
+	target_hero.modify_hp(heal_amount) # Aplica a cura
+	
+	print("💚 [Combat] %s healed %s for %d HP." % [caster_state.blueprint.character_name, target_hero.blueprint.character_name, heal_amount])
+	
+	# Dispara o pop-up de cura (usando a mesma cena monocromática com texto adaptado)
+	_trigger_damage_popup(target_hero.blueprint.id, heal_amount, "HEAL") 
+	_update_hero_ui_display(target_hero.blueprint.id)
+	
+	_finish_current_hero_turn()
+
+## Executa a cura em toda a equipe ativa de uma vez só [8]
+func execute_hero_party_heal(skill: SkillData) -> void:
+	var caster_id = active_party_ids[current_hero_index]
+	var caster_state = PlayerData.get_hero(caster_id)
+	
+	caster_state.modify_mp(-skill.mp_cost)
+	_update_hero_ui_display(caster_id)
+	
+	var heal_amount: int = int(caster_state.get_attack() * skill.damage_multiplier)
+	
+	for hero_id in active_party_ids:
+		var target_hero = PlayerData.get_hero(hero_id)
+		if target_hero:
+			target_hero.modify_hp(heal_amount)
+			_trigger_damage_popup(hero_id, heal_amount, "HEAL")
+			_update_hero_ui_display(hero_id)
+			
+	print("💚 [Combat] %s healed the entire party for %d HP." % [caster_state.blueprint.character_name, heal_amount])
+	_finish_current_hero_turn()
 
 func _execute_enemy_attack() -> void:
 	if active_party_ids.is_empty():
 		_run_state_based_actions()
 		return
 		
+	# 1. 🎯 Escolhe o herói alvo de forma direta por código (Pula qualquer UI)
 	var random_index: int = randi() % active_party_ids.size()
 	var target_hero_id: String = active_party_ids[random_index]
 	var target_hero = PlayerData.get_hero(target_hero_id)
@@ -145,11 +218,49 @@ func _execute_enemy_attack() -> void:
 	if not target_hero or target_hero.current_hp <= 0:
 		_finish_enemy_turn()
 		return
-		
-	var damage_dealt = spawned_enemy.get_attack()
-	target_hero.take_damage_combat(damage_dealt, "PHYSICAL")
+
+	# 2. 🎲 Tabela de Decisão da IA (60% de chance de usar magia se tiver MP, 40% ataque físico)
+	var choice_roll = randf() # Gera um número aleatório entre 0.0 e 1.0
+	var used_skill: SkillData = null
 	
-	_trigger_damage_popup(target_hero_id, damage_dealt, "PHYSICAL")
+	# Se o monstro tiver skills na lista e o dado rolar para magia (menor que 0.60)
+	if not spawned_enemy.blueprint.skill_list.is_empty() and choice_roll < 0.60:
+		var random_skill_id = spawned_enemy.blueprint.skill_list.pick_random()
+		var candidate_skill = SkillsDatabase.get_skill(random_skill_id)
+		
+		# Checa se o monstro tem MP suficiente para pagar o rito da magia
+		if candidate_skill and spawned_enemy.current_mp >= candidate_skill.mp_cost:
+			used_skill = candidate_skill
+
+	# 3. 🎬 Execução da Ação Escolhida
+		# --- TRECHO DA IA DENTRO DE _execute_enemy_attack ---
+	if used_skill != null:
+		spawned_enemy.modify_mp(-used_skill.mp_cost)
+		print("👹 [IA Combat] Jack Frost casts %s!" % used_skill.name)
+		
+		# 📺 PISCAR SECO DO SEU LETREIRO (Sem precisar de script no nó!)
+		if ui_skill_announcer:
+			ui_skill_announcer.text = used_skill.name.to_upper() # Injeta "BUFU" ou "AGI"
+			
+			# Como o 'Panel' é o pai da Label, pegamos o pai e damos .show() nele!
+			var panel_node = ui_skill_announcer.get_parent() as Control
+			if panel_node: panel_node.show()
+			
+			await get_tree().create_timer(0.4).timeout # Espera rapidinho
+			
+			if panel_node: panel_node.hide() # Esconde o painel na hora do impacto do dano
+			
+		var damage_base = int(spawned_enemy.get_attack() * used_skill.damage_multiplier)
+		target_hero.take_damage_combat(damage_base, used_skill.element_type)
+		_trigger_damage_popup(target_hero_id, damage_base, used_skill.element_type)
+	else:
+		# Ataque físico básico comum se não escolher magia
+		var damage_dealt = spawned_enemy.get_attack()
+		target_hero.take_damage_combat(damage_dealt, "PHYSICAL")
+		_trigger_damage_popup(target_hero_id, damage_dealt, "PHYSICAL")
+	# ---------------------------------------------------
+
+	# 4. 🧼 Atualiza a interface móvel dos heróis e roda a SBA
 	_update_hero_ui_display(target_hero_id)
 	
 	if target_hero.current_hp <= 0:
@@ -209,6 +320,7 @@ func _update_active_party_list() -> void:
 	# Varre os heróis ativos do PlayerData
 	for hero_id in PlayerData.active_party:
 		var hero_state = PlayerData.get_hero(hero_id)
+		# --- CONTINUAÇÃO DA FUNÇÃO _update_active_party_list ---
 		if hero_state and hero_state.current_hp > 0:
 			active_party_ids.append(hero_id)
 			
@@ -229,7 +341,8 @@ func _update_hero_ui_display(hero_id: String) -> void:
 	var hero_card = ui_heroes_container.get_node_or_null(hero_id)
 	if hero_card and hero_card.has_method("configurar_card"):
 		var hero_state = PlayerData.get_hero(hero_id)
-		if hero_state: hero_card.configurar_card(hero_state)
+		if hero_state: 
+			hero_card.configurar_card(hero_state)
 
 func _trigger_enemy_damage_popup(damage_amount: int, _element_type: String) -> void:
 	if not damage_popup_scene or not enemy_sprite: return
@@ -237,6 +350,7 @@ func _trigger_enemy_damage_popup(damage_amount: int, _element_type: String) -> v
 	popup.text = str(damage_amount)
 	add_child(popup)
 	popup.global_position = enemy_sprite.global_position + Vector2(enemy_sprite.size.x / 2, -30)
+	
 	var tween = create_tween().set_parallel(true)
 	tween.tween_property(popup, "global_position:y", popup.global_position.y - 40, 0.6)
 	tween.tween_property(popup, "modulate:a", 0.0, 0.6)
@@ -247,8 +361,10 @@ func _trigger_damage_popup(target_id: String, damage_amount: int, _element_type:
 	var popup = damage_popup_scene.instantiate() as Label
 	popup.text = str(damage_amount)
 	add_child(popup)
+	
 	var hero_ui_node = ui_heroes_container.get_node_or_null(target_id)
 	popup.global_position = hero_ui_node.global_position + Vector2(50, -20) if hero_ui_node else get_viewport().get_visible_rect().size / 2
+	
 	var tween = create_tween().set_parallel(true)
 	tween.tween_property(popup, "global_position:y", popup.global_position.y - 40, 0.6)
 	tween.tween_property(popup, "modulate:a", 0.0, 0.6)

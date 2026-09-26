@@ -9,6 +9,7 @@ extends Resource
 
 @export_category("Atributos Base")
 @export var base_hp: int = 50
+@export var base_mp: int = 30  
 @export var base_atk: int = 10
 @export var xp_reward: int = 20
 
@@ -17,3 +18,6 @@ extends Resource
 @export var res_ice: float = 1.0
 @export var res_elec: float = 1.0
 @export var res_physical: float = 1.0
+
+@export_category("Habilidades do Inimigo")
+@export var skill_list: Array[String] = []

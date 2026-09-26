@@ -3,6 +3,8 @@ class_name EnemyState
 extends Resource
 
 signal hp_changed(new_hp: int, max_hp: int, change: int)
+signal mp_changed(new_mp: int, max_mp: int, change: int)
+
 signal died()
 
 @export var blueprint: EnemyData
@@ -18,11 +20,16 @@ var current_hp: int = 0:
 		
 		if current_hp == 0:
 			died.emit()
-
+var current_mp: int = 0
 func initialize(base_data: EnemyData) -> void:
 	blueprint = base_data
 	current_hp = get_max_hp()
+	current_mp = get_max_mp() # ❄️ NOVO: Nasce com a barra de MP cheia!
 
+func get_max_mp() -> int:
+	if not blueprint or not "base_mp" in blueprint: return 0
+	return blueprint.base_mp
+	
 func get_max_hp() -> int:
 	if not blueprint: return 0
 	return blueprint.base_hp # Sincronizado com o EnemyData em português!
@@ -49,3 +56,9 @@ func receive_combat_damage(base_dmg: int, element_type: String) -> bool:
 	print("👹 [EnemyState] Monstro tomou %d de dano (%s). HP: %d/%d" % [final_dmg, element_type, current_hp, get_max_hp()])
 	
 	return multiplier > 1.0
+func modify_mp(amount: int) -> void:
+	var old_mp = current_mp
+	current_mp = clamp(current_mp + amount, 0, get_max_mp())
+	var change = current_mp - old_mp
+	if change != 0:
+		mp_changed.emit(current_mp, get_max_mp(), change)

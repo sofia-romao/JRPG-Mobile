@@ -1,12 +1,17 @@
 class_name SkillData
 extends Resource
 
+enum TargetType { ENEMY, ALLY_SINGLE, ALLY_ALL }
+
 @export var id: String = ""
 @export var name: String = "Agi"
 @export var mp_cost: int = 4
 
-# Tipo do elemento: "PHYSICAL", "FIRE", "ICE", "ELEC"
-@export_enum("PHYSICAL", "FIRE", "ICE", "ELEC") var element_type: String = "PHYSICAL"
+# Tipo do elemento: "PHYSICAL", "FIRE", "ICE", "ELEC", "HEAL"
+@export_enum("PHYSICAL", "FIRE", "ICE", "ELEC", "HEAL") var element_type: String = "PHYSICAL"
 
-# O multiplicador de dano da habilidade (ex: 1.5 significa que dá 150% do ataque do herói)
+# 🎯 NOVO: Diz para o motor quem essa skill atinge por padrão
+@export var target_type: TargetType = TargetType.ENEMY
+
+# O multiplicador de dano/cura (ex: 1.5 significa 150% do ataque/magia)
 @export var damage_multiplier: float = 1.0

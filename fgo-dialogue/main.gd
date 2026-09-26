@@ -8,21 +8,18 @@ class_name MainController
 const EXPLORATION_SCENE_PATH = "res://scenes/party_selection_menu.tscn"
 const DIALOGUE_SCENE_PATH = "res://scenes/dialogue_box.tscn"
 const COMBAT_SCENE_PATH = "res://scenes/combat_manager.tscn"
-
+const MAIN_MENU_PATH = "res://scenes/main_menu.tscn"
 var _current_active_scene: Node = null
 var _current_combat_data: CombatData = null
-
+# Ajuste o seu _ready() para abrir o menu em vez da exploração:
 func _ready() -> void:
 	if scene_container == null:
 		push_error("Main: The 'scene_container' node was not assigned in the Inspector!")
 		return
-		
-	# --- 📂 CARREGAMENTO AUTOMÁTICO AO LIGAR O JOGO ---
-	if SaveManager.has_method("load_game"):
-		SaveManager.load_game()
-	# -------------------------------------------------
-	
-	_transition_to_scene(EXPLORATION_SCENE_PATH)
+	# O jogo agora inicia na tela de título de forma obrigatória!
+	_transition_to_scene(MAIN_MENU_PATH)
+
+
 
 func _transition_to_scene(scene_path: String) -> Node:
 	if _current_active_scene != null:

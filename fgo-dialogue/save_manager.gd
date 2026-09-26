@@ -18,7 +18,8 @@ func save_game() -> void:
 		var hero_state: HeroState = PlayerData.hero_collection[hero_id]
 		save_res.hero_stats[hero_id] = {
 			"current_exp": hero_state.current_exp,
-			"current_hp": hero_state.current_hp
+			"current_hp": hero_state.current_hp,
+			"current_mp": hero_state.current_mp
 		}
 	
 	# A mágica nativa do Godot acontece aqui: salva o arquivo de uma vez só!
@@ -53,6 +54,7 @@ func load_game() -> bool:
 			
 			hero_state.current_exp = stats.get("current_exp", 0)
 			hero_state.current_hp = stats.get("current_hp", hero_state.get_max_hp())
+			hero_state.current_mp = stats.get("current_mp", hero_state.get_max_mp())
 			
 	print("📂 [SaveManager] Game resource loaded successfully!")
 	return true

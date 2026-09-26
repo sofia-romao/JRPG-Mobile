@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="SkillData" format=3 uid="uid://c8xl0nimad5er"]
+
+[ext_resource type="Script" uid="uid://8ol7wmoevwbk" path="res://skill_data.gd" id="1_opsxy"]
+
+[resource]
+script = ExtResource("1_opsxy")
+id = "agi"
+element_type = "FIRE"
+metadata/_custom_type_script = "uid://8ol7wmoevwbk"

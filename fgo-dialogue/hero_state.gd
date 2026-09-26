@@ -1,13 +1,15 @@
 class_name HeroState
-extends Resource # Usamos Resource para facilitar o sistema de Save/Load no futuro
+extends Resource
 
 @export var blueprint: HeroData
 @export var current_exp: int = 0
 @export var current_hp: int = 0
+@export var current_mp: int = 0 # 🔮 Agora oficializado!
 
 signal changed_hp(new_hp: int, max_hp: int, change: int)
+signal changed_mp(new_mp: int, max_mp: int, change: int) # 🔮 UI de batalha vai escutar este sinal
 
-## Atualiza o HP garantindo os limites e emite o sinal para a UI mobile
+## Updates HP, clamping to bounds and emitting signal for Mobile UI
 func modify_hp(amount: int) -> void:
 	var old_hp = current_hp
 	current_hp = clamp(current_hp + amount, 0, get_max_hp())
@@ -16,52 +18,46 @@ func modify_hp(amount: int) -> void:
 	if change != 0:
 		changed_hp.emit(current_hp, get_max_hp(), change)
 
-## Calcula o nível atual baseado na XP
+## Updates MP, clamping to bounds and emitting signal for Mobile UI
+func modify_mp(amount: int) -> void:
+	var old_mp = current_mp
+	current_mp = clamp(current_mp + amount, 0, get_max_mp())
+	var change = current_mp - old_mp
+	
+	if change != 0:
+		changed_mp.emit(current_mp, get_max_mp(), change)
+
+## Calculates current level based on EXP
 func get_level() -> int:
 	return int(current_exp / 1000) + 1
 
-## Busca o HP base no Blueprint e soma o ganho por nível dinamicamente (100% em Português)
-## Busca o HP base no Blueprint e soma o ganho por nível dinamicamente
-## Busca o HP base no Blueprint e soma o ganho por nível dinamicamente
+## Gets Max HP dynamically from the blueprint scaling
 func get_max_hp() -> int:
-	if not blueprint: return 0
-	
-	# Proteção estática para o HP Base
-	var hp_base_val = 100
-	if "hp_base" in blueprint: hp_base_val = blueprint.hp_base
-	elif "base_hp" in blueprint: hp_base_val = blueprint.base_hp
-	
-	# Proteção estática para o Ganho por Nível
-	var hp_por_nivel_val = 15
-	if "hp_por_nivel" in blueprint: hp_por_nivel_val = blueprint.hp_por_nivel
-	elif "hp_per_level" in blueprint: hp_por_nivel_val = blueprint.hp_per_level
-		
-	return hp_base_val + (hp_por_nivel_val * (get_level() - 1))
+	if not blueprint: return 100
+	return blueprint.get_max_hp(get_level())
 
-## Busca o Ataque dinamicamente
+## Gets Max MP dynamically from the blueprint scaling
+func get_max_mp() -> int:
+	if not blueprint: return 20
+	return blueprint.get_max_mp(get_level())
+
+## Gets Attack dynamically from the blueprint scaling
 func get_attack() -> int:
-	if not blueprint: return 0
-	
-	# Proteção estática para o Ataque Base
-	var ataque_base_val = 10
-	if "ataque_base" in blueprint: ataque_base_val = blueprint.ataque_base
-	elif "base_attack" in blueprint: ataque_base_val = blueprint.base_attack
-	
-	# Proteção estática para o Ganho por Nível
-	var ataque_por_nivel_val = 3
-	if "ataque_por_nivel" in blueprint: ataque_por_nivel_val = blueprint.ataque_por_nivel
-	elif "attack_per_level" in blueprint: ataque_por_nivel_val = blueprint.attack_per_level
-	
-	return ataque_base_val + (ataque_por_nivel_val * (get_level() - 1))
+	if not blueprint: return 10
+	return blueprint.get_attack(get_level())
 
-## Cura total (usado ao limpar missões)
+## Gets Speed dynamically from the blueprint scaling
+func get_speed() -> int:
+	if not blueprint: return 5
+	return blueprint.get_speed(get_level())
+
+## Full recovery (used on mission clears or full heals)
 func full_heal() -> void:
 	current_hp = get_max_hp()
+	current_mp = get_max_mp() # Restaura o MP totalmente também!
 
-# --- MÉTODOS DE COMPATIBILIDADE COM O COMBAT MANAGER ---
-
-## Aplica o dano de combate calculando as resistências elementais do HeroData.
-## Retorna TRUE se o inimigo acertou uma fraqueza (multiplicador > 1.0).
+## Applies combat damage calculating elemental resistances from HeroData.
+## Returns TRUE if the enemy hit a weakness (multiplier > 1.0).
 func take_damage_combat(damage_base: int, element_type: String) -> bool:
 	if not blueprint: return false
 	
@@ -74,10 +70,8 @@ func take_damage_combat(damage_base: int, element_type: String) -> bool:
 		"PHYSICAL": multiplier = blueprint.res_physical
 	
 	var final_damage: int = int(damage_base * multiplier)
-	
-	# O dano reduz o HP, por isso passamos o valor negativo para a nossa função
 	modify_hp(-final_damage) 
 	
-	print("⚔️ [HeroState] %s recebeu %d de dano (%s). Multiplicador: %f" % [blueprint.character_name, final_damage, element_type, multiplier])
+	print("⚔️ [HeroState] %s received %d damage (%s). Multiplier: %f" % [blueprint.character_name, final_damage, element_type, multiplier])
 	
 	return multiplier > 1.0

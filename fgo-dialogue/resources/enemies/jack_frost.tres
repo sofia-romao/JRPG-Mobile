@@ -9,4 +9,5 @@ id = "enemy_test_01"
 combat_sprite = ExtResource("2_rvquh")
 res_fire = 2.0
 res_ice = 0.0
+skill_list = Array[String](["bufu"])
 metadata/_custom_type_script = "uid://yr4eb4cde4y1"
