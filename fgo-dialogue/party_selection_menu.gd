@@ -19,19 +19,22 @@ var available_missions: Dictionary = {} # Armazena as missões carregadas do dis
 
 func _ready() -> void:
 	_load_missions_from_folder()
-	# --- O TRUQUE DA CONEXÃO DA ABA AQUI ---
-	# Quando o botão for pressionado, o Godot executa uma função na hora que chama switch_tab()
+	
 	if tab_heroes_button:
 		tab_heroes_button.pressed.connect(func(): switch_tab(0)) # 0 = Heroes
 		
 	if tab_missions_button:
 		tab_missions_button.pressed.connect(func(): switch_tab(1)) # 1 = Missions
-	# ----------------------------------------
 	
-	# Conexão do botão de ação contextual (caso não esteja linkado no inspector)
+	# Conexão do botão de ação contextual
 	if action_button and not action_button.pressed.is_connected(_on_action_button_pressed):
 		action_button.pressed.connect(_on_action_button_pressed)
 		
+	# --- 📑 MUDANÇA DE INICIALIZAÇÃO AQUI ---
+	# Força o menu a iniciar exibindo a lista de missões logo no primeiro frame!
+	current_tab = MenuTab.MISSIONS
+	# ----------------------------------------
+	
 	update_menu_ui()
 
 ## Função principal que reconstrói a lista dependendo da aba ativa
@@ -55,8 +58,18 @@ func update_menu_ui() -> void:
 
 func _render_heroes_tab(is_locked: bool) -> void:
 	if action_button:
-		action_button.text = "Party Locked" if is_locked else "Party Confirmed"
-		action_button.disabled = is_locked
+		if is_locked:
+			action_button.text = "Party Locked"
+			action_button.disabled = true
+		elif PlayerData.selected_mission_data != null:
+			# Se veio da aba de missões com um contrato, vira o botão de Deploy!
+			action_button.text = "[ DEPLOY TEAM ]"
+			# TRAVA: Fica desativado se o jogador tentar entrar na luta sem heróis selecionados!
+			action_button.disabled = PlayerData.active_party.is_empty()
+		else:
+			# Se o jogador está apenas navegando na tela sem missão selecionada
+			action_button.text = "Select a Mission First"
+			action_button.disabled = true
 		
 	for hero_id in PlayerData.hero_collection:
 		var hero_state: HeroState = PlayerData.hero_collection[hero_id]
@@ -77,27 +90,25 @@ func _render_missions_tab(is_locked: bool) -> void:
 			action_button.text = "Continue Mission"
 			action_button.disabled = false
 		else:
-			action_button.text = "Select a Mission"
-			action_button.disabled = (PlayerData.selected_mission_data == null)
+			# Na aba de missões o botão inferior serve apenas como um aviso visual de instrução
+			action_button.text = "Click a Mission Card Above"
+			action_button.disabled = true
 
-	# Se já houver uma missão travada em andamento, não renderiza a lista de seleção
 	if is_locked:
 		return
 
 	for mission_id in available_missions:
 		var mission: MissionData = available_missions[mission_id]
 		
-		# FILTRO DE PROGRESSÃO: Checa se bate os pré-requisitos de história
 		if PlayerData.completed_missions.has(mission.id):
-			continue # Esconde se já foi concluída
+			continue
 			
 		if mission.required_mission_id != "" and not PlayerData.completed_missions.has(mission.required_mission_id):
-			continue # Esconde se a missão anterior exigida não foi feita
+			continue
 			
 		var new_card = mission_card_prefab.instantiate()
 		grid_container.add_child(new_card)
 		
-		# Passa os dados para o seu cartão de missão customizado
 		if new_card.has_method("initialize_mission_card"):
 			var is_selected = (PlayerData.selected_mission_data == mission)
 			new_card.initialize_mission_card(mission, is_selected)
@@ -126,6 +137,9 @@ func _on_mission_card_selected(mission: MissionData) -> void:
 		PlayerData.selected_mission_data = null
 	else:
 		PlayerData.selected_mission_data = mission
+		print("🎯 Menu: Mission selected: ", mission.title, ". Redirecting to Party Setup...")
+		switch_tab(0) # ◄ JOGA O JOGADOR DIRETO PARA A SELEÇÃO DE HERÓIS!
+		return # Interrompe aqui para o switch_tab atualizar a tela sozinho
 		
 	update_menu_ui()
 
@@ -139,27 +153,31 @@ func switch_tab(tab_index: int) -> void:
 
 ## Comportamento do botão de confirmação inferior
 func _on_action_button_pressed() -> void:
-	match current_tab:
-		MenuTab.HEROES:
-			print("👥 Menu: Party structure confirmed! Active size: ", PlayerData.active_party.size())
+	# Se a missão já está em andamento (retornando da dungeon)
+	if PlayerData.is_mission_in_progress:
+		print("🚀 Menu: Returning to active mission zone.")
+		return
+		
+	# Caso Geral: O jogador montou a party na aba de heróis e clicou em [ DEPLOY TEAM ]
+	if PlayerData.selected_mission_data != null:
+		# PROTEÇÃO BRUTA: Impede o avanço se a lista de heróis ativos estiver vazia na memória
+		if PlayerData.active_party.is_empty():
+			print("❌ Menu: Deploy aborted! Active party is empty.")
+			return
 			
-		MenuTab.MISSIONS:
-			# Caso 1: Jogador está voltando para uma missão que já começou
-			if PlayerData.is_mission_in_progress:
-				# Aqui você dispararia a Parte 2 da exploração ou reabriria a dungeon
-				print("🚀 Menu: Returning to active mission zone.")
-				return
-				
-			# Caso 2: Iniciando uma nova missão da lista
-			if PlayerData.selected_mission_data != null:
-				var mission = PlayerData.selected_mission_data
-				PlayerData.active_mission_id = mission.id
-				
-				print("🚀 Menu: Starting fresh mission: ", mission.title)
-				# Dispara o GameEvent associado à missão usando a sua MainController!
-				var main = get_tree().root.get_node_or_null("MainController") # Ajuste o caminho se necessário
-				if main and main.has_method("_on_exploration_requested_dialogue"):
-					main._on_exploration_requested_dialogue(mission.start_event)
+		var mission = PlayerData.selected_mission_data
+		PlayerData.active_mission_id = mission.id
+		
+		# Cura e enche o MP/HP da equipe ativa antes de entrar na arena
+		PlayerData.heal_active_party()
+		
+		print("🚀 Menu: Team deployed successfully! Starting mission: ", mission.title)
+		
+		var main = get_tree().root.get_node_or_null("MainController")
+		if main and main.has_method("_on_exploration_requested_dialogue"):
+			main._on_exploration_requested_dialogue(mission.start_event)
+	else:
+		print("⚠️ Menu: No mission selected to deploy.")
 
 # --- CARREGADOR AUTOMÁTICO DE RECURSOS ---
 

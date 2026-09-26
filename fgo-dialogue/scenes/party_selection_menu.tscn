@@ -5,14 +5,12 @@
 [ext_resource type="PackedScene" uid="uid://dbtxuhojfjj8q" path="res://scenes/mission_card.tscn" id="3_wpd0i"]
 
 [node name="PartySelectionMenu" type="Control" unique_id=928408070 node_paths=PackedStringArray("grid_container", "locked_warning_label", "action_button", "tab_heroes_button", "tab_missions_button")]
-custom_minimum_size = Vector2(800, 500)
+custom_minimum_size = Vector2(400, 500)
 layout_mode = 3
-anchors_preset = 11
-anchor_left = 1.0
+anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = -800.0
-grow_horizontal = 0
+grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_axaai")
 hero_card_prefab = ExtResource("2_7xtmb")
@@ -23,11 +21,23 @@ action_button = NodePath("ActionButton")
 tab_heroes_button = NodePath("HBoxContainer/TabHeroesButton")
 tab_missions_button = NodePath("HBoxContainer/TabMissionsButton")
 
-[node name="ScrollContainer" type="ScrollContainer" parent="." unique_id=1790750672]
+[node name="Control" type="Control" parent="." unique_id=603948743]
+custom_minimum_size = Vector2(0, 100)
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="ScrollContainer" type="ScrollContainer" parent="." unique_id=1790750672]
+layout_mode = 1
+anchors_preset = 14
+anchor_top = 0.5
+anchor_right = 1.0
+anchor_bottom = 0.5
+offset_top = -303.0
+offset_bottom = 277.0
 grow_horizontal = 2
 grow_vertical = 2
 
@@ -42,18 +52,19 @@ offset_bottom = 134.0
 
 [node name="ActionButton" type="Button" parent="." unique_id=2121624718]
 layout_mode = 0
-offset_left = -185.0
-offset_top = 311.0
-offset_right = -32.0
-offset_bottom = 430.0
+offset_left = 296.0514
+offset_top = 760.78564
+offset_right = 449.0514
+offset_bottom = 879.78564
 text = "START"
 
 [node name="HBoxContainer" type="HBoxContainer" parent="." unique_id=948253854]
-layout_mode = 0
-offset_left = -299.4226
-offset_top = 25.073517
-offset_right = 82.57739
-offset_bottom = 85.07352
+custom_minimum_size = Vector2(0, 100)
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 31.0
+grow_horizontal = 2
 
 [node name="TabHeroesButton" type="Button" parent="HBoxContainer" unique_id=440675371]
 layout_mode = 2

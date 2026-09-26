@@ -8,4 +8,5 @@ script = ExtResource("1_dlrhb")
 id = "mash"
 character_name = "Mash"
 avatar_icon = ExtResource("1_7th1m")
+skill_list = Array[String](["dia"])
 metadata/_custom_type_script = "uid://bln4pkc2ot1or"

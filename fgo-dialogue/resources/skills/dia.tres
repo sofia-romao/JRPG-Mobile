@@ -1,0 +1,11 @@
+[gd_resource type="Resource" script_class="SkillData" format=3 uid="uid://bijro563h4wt8"]
+
+[ext_resource type="Script" uid="uid://8ol7wmoevwbk" path="res://skill_data.gd" id="1_kkp31"]
+
+[resource]
+script = ExtResource("1_kkp31")
+id = "dia"
+name = "Dia"
+element_type = "HEAL"
+target_type = 1
+metadata/_custom_type_script = "uid://8ol7wmoevwbk"

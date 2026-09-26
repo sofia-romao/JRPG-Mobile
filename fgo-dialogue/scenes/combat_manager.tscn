@@ -37,11 +37,15 @@ grow_vertical = 2
 stretch_mode = 5
 
 [node name="EnemySprite" type="TextureRect" parent="VisualArea" unique_id=806145300]
-layout_mode = 0
-offset_left = 327.779
-offset_top = 117.59039
-offset_right = 455.779
-offset_bottom = 245.5904
+layout_mode = 1
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -60.30963
+offset_top = 127.96977
+offset_right = 67.69037
+offset_bottom = 255.96977
+grow_horizontal = 2
 texture = ExtResource("2_yvt8h")
 
 [node name="EnemyHPBar" type="ProgressBar" parent="VisualArea/EnemySprite" unique_id=1202804541]
@@ -73,13 +77,24 @@ vertical_alignment = 1
 [node name="UIArea" type="CanvasLayer" parent="." unique_id=154824833]
 
 [node name="MainMobileLayout" type="VBoxContainer" parent="UIArea" unique_id=1881032632]
-anchors_preset = 15
-anchor_right = 1.0
+anchors_preset = 13
+anchor_left = 0.5
+anchor_right = 0.5
 anchor_bottom = 1.0
+offset_left = -252.0
+offset_right = 252.0
 grow_horizontal = 2
 grow_vertical = 2
 
 [node name="Spacer" type="Control" parent="UIArea/MainMobileLayout" unique_id=961185898]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Spacer2" type="Control" parent="UIArea/MainMobileLayout" unique_id=544207440]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Spacer3" type="Control" parent="UIArea/MainMobileLayout" unique_id=1234917458]
 layout_mode = 2
 size_flags_vertical = 3
 
@@ -90,6 +105,7 @@ layout_mode = 2
 layout_mode = 2
 
 [node name="PartyPanel" type="PanelContainer" parent="UIArea/MainMobileLayout" unique_id=97544341]
+custom_minimum_size = Vector2(0, 200)
 layout_mode = 2
 size_flags_vertical = 3
 
@@ -97,6 +113,7 @@ size_flags_vertical = 3
 layout_mode = 2
 
 [node name="CommandMenu" type="PanelContainer" parent="UIArea/MainMobileLayout" unique_id=615045947 node_paths=PackedStringArray("combat_manager")]
+custom_minimum_size = Vector2(0, 200)
 layout_mode = 2
 script = ExtResource("3_iekp2")
 combat_manager = NodePath("../../..")
@@ -109,18 +126,18 @@ layout_mode = 2
 columns = 2
 
 [node name="AttackButton" type="Button" parent="UIArea/MainMobileLayout/CommandMenu/MenuContexts/MainButtons" unique_id=2099042336]
-custom_minimum_size = Vector2(50, 50)
+custom_minimum_size = Vector2(250, 100)
 layout_mode = 2
 text = "Lutar
 "
 
 [node name="SkillsButton" type="Button" parent="UIArea/MainMobileLayout/CommandMenu/MenuContexts/MainButtons" unique_id=1628132285]
-custom_minimum_size = Vector2(50, 50)
+custom_minimum_size = Vector2(250, 100)
 layout_mode = 2
 text = "Skill"
 
 [node name="ItemsButton" type="Button" parent="UIArea/MainMobileLayout/CommandMenu/MenuContexts/MainButtons" unique_id=497166516]
-custom_minimum_size = Vector2(50, 50)
+custom_minimum_size = Vector2(200, 100)
 layout_mode = 2
 text = "Item
 "
@@ -138,9 +155,13 @@ layout_mode = 2
 [node name="SkillsList" type="VBoxContainer" parent="UIArea/MainMobileLayout/CommandMenu/MenuContexts/SkillsSubMenu" unique_id=564479411]
 custom_minimum_size = Vector2(80, 80)
 layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
 
 [node name="ItemsSubMenu" type="ScrollContainer" parent="UIArea/MainMobileLayout/CommandMenu/MenuContexts" unique_id=2080177807]
 layout_mode = 2
 
 [node name="ItemsList" type="VBoxContainer" parent="UIArea/MainMobileLayout/CommandMenu/MenuContexts/ItemsSubMenu" unique_id=696869270]
 layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3

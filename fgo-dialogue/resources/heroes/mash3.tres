@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="HeroData" format=3 uid="uid://dxs3q78sqkg2s"]
+
+[ext_resource type="Texture2D" uid="uid://bwi77x5m5uiut" path="res://icon.svg" id="1_apk51"]
+[ext_resource type="Script" uid="uid://bln4pkc2ot1or" path="res://hero_data.gd" id="2_nvd65"]
+
+[resource]
+script = ExtResource("2_nvd65")
+id = "mash3"
+character_name = "Mash"
+avatar_icon = ExtResource("1_apk51")
+skill_list = Array[String](["dia"])
+metadata/_custom_type_script = "uid://bln4pkc2ot1or"

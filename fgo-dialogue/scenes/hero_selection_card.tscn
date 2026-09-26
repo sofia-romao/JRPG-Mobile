@@ -4,14 +4,17 @@
 [ext_resource type="Texture2D" uid="uid://bwi77x5m5uiut" path="res://icon.svg" id="2_4uac4"]
 
 [node name="HeroSelectionCard" type="Button" unique_id=1703486652 node_paths=PackedStringArray("avatar_texture", "name_label", "hp_label", "lock_overlay", "margin_container")]
-custom_minimum_size = Vector2(1000, 80)
-anchors_preset = 15
+custom_minimum_size = Vector2(300, 80)
+anchors_preset = 14
+anchor_top = 0.5
 anchor_right = 1.0
-anchor_bottom = 1.0
+anchor_bottom = 0.5
+offset_top = -4.0
+offset_bottom = 4.0
 grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_k8dh0")
-avatar_texture = NodePath("MarginContainer/TextureRect")
+avatar_texture = NodePath("MarginContainer/HBoxContainer/TextureRect")
 name_label = NodePath("MarginContainer/HBoxContainer/LabelNome")
 hp_label = NodePath("MarginContainer/HBoxContainer/LabelHP")
 lock_overlay = NodePath("OverlayTrancado")
@@ -19,17 +22,18 @@ margin_container = NodePath("MarginContainer")
 
 [node name="MarginContainer" type="MarginContainer" parent="." unique_id=2129938305]
 layout_mode = 1
-offset_right = 204.0
-offset_bottom = 128.0
-theme_override_constants/margin_left = 0
-theme_override_constants/margin_top = 0
-theme_override_constants/margin_right = 0
-theme_override_constants/margin_bottom = 0
-
-[node name="TextureRect" type="TextureRect" parent="MarginContainer" unique_id=671201493]
-layout_mode = 2
-texture = ExtResource("2_4uac4")
-stretch_mode = 5
+anchors_preset = 14
+anchor_top = 0.5
+anchor_right = 1.0
+anchor_bottom = 0.5
+offset_top = -47.0
+offset_bottom = 33.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
 
 [node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer" unique_id=708147872]
 layout_mode = 2
@@ -45,6 +49,14 @@ vertical_alignment = 1
 [node name="LabelHP" type="Label" parent="MarginContainer/HBoxContainer" unique_id=193720062]
 custom_minimum_size = Vector2(100, 80)
 layout_mode = 2
+
+[node name="TextureRect" type="TextureRect" parent="MarginContainer/HBoxContainer" unique_id=671201493]
+custom_minimum_size = Vector2(80, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+texture = ExtResource("2_4uac4")
+expand_mode = 1
+stretch_mode = 5
 
 [node name="OverlayTrancado" type="ColorRect" parent="." unique_id=247004520]
 visible = false
