@@ -13,8 +13,8 @@ func configurar_card(hero_state: HeroState) -> void:
 	
 	# Preenche usando as propriedades corrigidas em inglês
 	name_label.text = hero_state.blueprint.character_name
-	level_label.text = "Lv. " + str(hero_state.get_nivel())
-	_update_hp_text(hero_state.hp_atual, hero_state.get_max_hp())
+	level_label.text = "Lv. " + str(hero_state.get_level())
+	_update_hp_text(hero_state.current_hp, hero_state.get_max_hp())
 	
 	if hero_state.has_signal("hp_alterado") and not hero_state.hp_alterado.is_connected(_on_hero_hp_changed):
 		hero_state.hp_alterado.connect(_on_hero_hp_changed)

@@ -4,10 +4,12 @@
 [ext_resource type="PackedScene" uid="uid://772p2rwij28s" path="res://scenes/damage_popup.tscn" id="2_iekp2"]
 [ext_resource type="Texture2D" uid="uid://bwi77x5m5uiut" path="res://icon.svg" id="2_yvt8h"]
 [ext_resource type="Script" uid="uid://2qf1pi0robua" path="res://resources/heroes/command_menu.gd" id="3_iekp2"]
+[ext_resource type="PackedScene" uid="uid://dtka1msgfngt8" path="res://scenes/hero_status_card.tscn" id="4_iekp2"]
 
 [node name="CombatManager" type="Node" unique_id=1214775926 node_paths=PackedStringArray("enemy_sprite", "background_texture", "ui_heroes_container", "ui_command_buttons", "ui_skill_announcer", "enemy_hp_bar")]
 script = ExtResource("1_w318q")
 damage_popup_scene = ExtResource("2_iekp2")
+hero_status_card_prefab = ExtResource("4_iekp2")
 enemy_sprite = NodePath("VisualArea/EnemySprite")
 background_texture = NodePath("VisualArea/BackgroundTexture")
 ui_heroes_container = NodePath("UIArea/MainMobileLayout/PartyPanel/PartyContainer")
@@ -36,10 +38,10 @@ stretch_mode = 5
 
 [node name="EnemySprite" type="TextureRect" parent="VisualArea" unique_id=806145300]
 layout_mode = 0
-offset_left = 333.46857
-offset_top = 202.66602
-offset_right = 461.46857
-offset_bottom = 330.66602
+offset_left = 327.779
+offset_top = 117.59039
+offset_right = 455.779
+offset_bottom = 245.5904
 texture = ExtResource("2_yvt8h")
 
 [node name="EnemyHPBar" type="ProgressBar" parent="VisualArea/EnemySprite" unique_id=1202804541]
@@ -89,17 +91,9 @@ layout_mode = 2
 
 [node name="PartyPanel" type="PanelContainer" parent="UIArea/MainMobileLayout" unique_id=97544341]
 layout_mode = 2
+size_flags_vertical = 3
 
 [node name="PartyContainer" type="VBoxContainer" parent="UIArea/MainMobileLayout/PartyPanel" unique_id=1476951508]
-layout_mode = 2
-
-[node name="Hero1_Status" type="HBoxContainer" parent="UIArea/MainMobileLayout/PartyPanel/PartyContainer" unique_id=243772826]
-layout_mode = 2
-
-[node name="Hero2_Status" type="HBoxContainer" parent="UIArea/MainMobileLayout/PartyPanel/PartyContainer" unique_id=508239726]
-layout_mode = 2
-
-[node name="Hero3_Status" type="HBoxContainer" parent="UIArea/MainMobileLayout/PartyPanel/PartyContainer" unique_id=1086664107]
 layout_mode = 2
 
 [node name="CommandMenu" type="PanelContainer" parent="UIArea/MainMobileLayout" unique_id=615045947 node_paths=PackedStringArray("combat_manager")]

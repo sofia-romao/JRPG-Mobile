@@ -2,11 +2,12 @@
 
 [ext_resource type="Script" uid="uid://n8kqo011yuat" path="res://hero_status_card.gd" id="1_hjp1k"]
 
-[node name="HeroStatusCard" type="MarginContainer" unique_id=389208712 node_paths=PackedStringArray("level_label", "hp_label")]
+[node name="HeroStatusCard" type="MarginContainer" unique_id=389208712 node_paths=PackedStringArray("name_label", "level_label", "hp_label")]
 offset_right = 40.0
 offset_bottom = 40.0
 theme_override_constants/margin_left = 0
 script = ExtResource("1_hjp1k")
+name_label = NodePath("BackGroundPanel/ContentLayout/NomeLabel")
 level_label = NodePath("BackGroundPanel/ContentLayout/LevelLabel")
 hp_label = NodePath("BackGroundPanel/ContentLayout/HPLabel")
 

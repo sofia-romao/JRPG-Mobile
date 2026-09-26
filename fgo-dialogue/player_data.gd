@@ -3,8 +3,10 @@ extends Node
 @export var available_heroes: Array[HeroData] = []
 const MAX_PARTY_SIZE : int = 3
 
-var mission_in_progress: bool = false
-var id_active_mission: String = ""
+var is_mission_in_progress: bool = false
+var active_mission_id: String = ""
+var completed_missions: Array[String] = [] # Salva os IDs das missões finalizadas
+var selected_mission_data: MissionData = null # Missão clicada no menu atualmente
 
 
 # Agora a coleção guarda instâncias de HeroState indexadas por ID
@@ -37,7 +39,7 @@ func update_hp_by_id(id_heroi: String, modificador: int) -> void:
 func heal_active_party() -> void:
 	for id in active_party:
 		if hero_collection.has(id):
-			hero_collection[id].full_recovery()
+			hero_collection[id].full_heal()
 	print("❤️ [PlayerData] Toda a equipe ativa foi totalmente curada!")
 
 ## Retorna o objeto completo do herói para a UI ou Combate lerem os dados
@@ -66,7 +68,7 @@ func _load_heroes_from_folder() -> void:
 					var new_state = HeroState.new()
 					new_state.blueprint = data
 					new_state.current_exp = 0
-					new_state.total_recovery()
+					new_state.full_heal()
 					
 					hero_collection[data.id] = new_state
 					# Como deve ficar corrigido:

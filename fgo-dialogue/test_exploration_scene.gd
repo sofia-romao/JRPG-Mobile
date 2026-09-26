@@ -16,7 +16,7 @@ func _ready() -> void:
 		push_warning("Exploration: Don't forget to assign 'jack_frost.tres' in the Inspector!")
 
 func _update_map_ui() -> void:
-	if PlayerData.mission_in_progress:
+	if PlayerData.is_mission_in_progress:
 		mission_button.text = "Continue Mission (Part 2)"
 		abort_button.visible = true
 	else:
@@ -28,7 +28,7 @@ func _on_botao_missao_pressed() -> void:
 	var new_lines: Array[StoryLine] = []
 	var new_choices: Array[StoryChoice] = []
 	
-	if not PlayerData.mission_in_progress:
+	if not PlayerData.is_mission_in_progress:
 		# --- PART 1: JACK FROST EMBUSH ---
 		var l1 = StoryLine.new()
 		l1.character_name = "Mash"

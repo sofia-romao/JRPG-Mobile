@@ -31,13 +31,13 @@ func mostrar_menu_principal() -> void:
 	items_sub_menu.hide()
 
 ## Chamado pelo CombatManager quando o turno do herói começa
-func display_commands_for(hero_id: String) -> void:
-	var hero_state = PlayerData.get_heroi(hero_id)
+func show_commands_for(hero_id: String) -> void:
+	var hero_state = PlayerData.get_hero(hero_id)
 	mostrar_menu_principal()
 	
 	# Feedback visual tátil maravilhoso para Mobile usando a cor do herói!
 	if hero_state and hero_state.blueprint:
-		modulate = hero_state.blueprint.cor_tema
+		modulate = hero_state.blueprint.theme_color
 
 ## Esconde todo o painel de comandos (usado no turno do inimigo)
 func hide_commands() -> void:

@@ -17,7 +17,7 @@ func modify_hp(amount: int) -> void:
 		changed_hp.emit(current_hp, get_max_hp(), change)
 
 ## Calcula o nível atual baseado na XP
-func get_nivel() -> int:
+func get_level() -> int:
 	return int(current_exp / 1000) + 1
 
 ## Busca o HP base no Blueprint e soma o ganho por nível dinamicamente (100% em Português)
@@ -36,10 +36,10 @@ func get_max_hp() -> int:
 	if "hp_por_nivel" in blueprint: hp_por_nivel_val = blueprint.hp_por_nivel
 	elif "hp_per_level" in blueprint: hp_por_nivel_val = blueprint.hp_per_level
 		
-	return hp_base_val + (hp_por_nivel_val * (get_nivel() - 1))
+	return hp_base_val + (hp_por_nivel_val * (get_level() - 1))
 
 ## Busca o Ataque dinamicamente
-func get_ataque() -> int:
+func get_attack() -> int:
 	if not blueprint: return 0
 	
 	# Proteção estática para o Ataque Base
@@ -52,10 +52,10 @@ func get_ataque() -> int:
 	if "ataque_por_nivel" in blueprint: ataque_por_nivel_val = blueprint.ataque_por_nivel
 	elif "attack_per_level" in blueprint: ataque_por_nivel_val = blueprint.attack_per_level
 	
-	return ataque_base_val + (ataque_por_nivel_val * (get_nivel() - 1))
+	return ataque_base_val + (ataque_por_nivel_val * (get_level() - 1))
 
 ## Cura total (usado ao limpar missões)
-func total_recovery() -> void:
+func full_heal() -> void:
 	current_hp = get_max_hp()
 
 # --- MÉTODOS DE COMPATIBILIDADE COM O COMBAT MANAGER ---

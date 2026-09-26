@@ -6,11 +6,7 @@
 [resource]
 script = ExtResource("1_shcoj")
 id = "enemy_test_01"
-nome = "Jack Frost"
-cor_tema = Color(0.26425493, 0.58562875, 0.93292433, 1)
-sprite_combate = ExtResource("2_rvquh")
-hp_base = 80
-ataque_base = 12
+combat_sprite = ExtResource("2_rvquh")
 res_fire = 2.0
 res_ice = 0.0
 metadata/_custom_type_script = "uid://yr4eb4cde4y1"

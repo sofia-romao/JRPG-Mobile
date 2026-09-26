@@ -2,8 +2,9 @@
 
 [ext_resource type="Script" uid="uid://bt5y80jos8jvv" path="res://party_selection_menu.gd" id="1_axaai"]
 [ext_resource type="PackedScene" uid="uid://cavqlxggfvlb1" path="res://scenes/hero_selection_card.tscn" id="2_7xtmb"]
+[ext_resource type="PackedScene" uid="uid://dbtxuhojfjj8q" path="res://scenes/mission_card.tscn" id="3_wpd0i"]
 
-[node name="PartySelectionMenu" type="Control" unique_id=928408070 node_paths=PackedStringArray("grid_container", "locked_warning_label")]
+[node name="PartySelectionMenu" type="Control" unique_id=928408070 node_paths=PackedStringArray("grid_container", "locked_warning_label", "action_button", "tab_heroes_button", "tab_missions_button")]
 custom_minimum_size = Vector2(800, 500)
 layout_mode = 3
 anchors_preset = 11
@@ -14,9 +15,13 @@ offset_left = -800.0
 grow_horizontal = 0
 grow_vertical = 2
 script = ExtResource("1_axaai")
-card_prefab = ExtResource("2_7xtmb")
+hero_card_prefab = ExtResource("2_7xtmb")
+mission_card_prefab = ExtResource("3_wpd0i")
 grid_container = NodePath("ScrollContainer/HeroGrid")
 locked_warning_label = NodePath("LabelAvisoTrancado")
+action_button = NodePath("ActionButton")
+tab_heroes_button = NodePath("HBoxContainer/TabHeroesButton")
+tab_missions_button = NodePath("HBoxContainer/TabMissionsButton")
 
 [node name="ScrollContainer" type="ScrollContainer" parent="." unique_id=1790750672]
 layout_mode = 1
@@ -34,3 +39,30 @@ custom_minimum_size = Vector2(80, 60)
 layout_mode = 0
 offset_right = 228.0
 offset_bottom = 134.0
+
+[node name="ActionButton" type="Button" parent="." unique_id=2121624718]
+layout_mode = 0
+offset_left = -185.0
+offset_top = 311.0
+offset_right = -32.0
+offset_bottom = 430.0
+text = "START"
+
+[node name="HBoxContainer" type="HBoxContainer" parent="." unique_id=948253854]
+layout_mode = 0
+offset_left = -299.4226
+offset_top = 25.073517
+offset_right = 82.57739
+offset_bottom = 85.07352
+
+[node name="TabHeroesButton" type="Button" parent="HBoxContainer" unique_id=440675371]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Party"
+
+[node name="TabMissionsButton" type="Button" parent="HBoxContainer" unique_id=1289995794]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Missions"
+
+[connection signal="pressed" from="ActionButton" to="." method="_on_action_button_pressed"]

@@ -4,9 +4,13 @@ class_name CombatManager
 # O sinal que a MainController vai escutar para desinstanciar o combate
 signal combat_finished(victory: bool)
 
-enum CombatState { INITIALIZING, HERO_TURN, ENEMY_TURN, VICTORY, DEFEAT }
+# CHECKING_SBA impede que qualquer herói avance ou ataque enquanto processamos mortes
+enum CombatState { INITIALIZING, HERO_TURN, ENEMY_TURN, CHECKING_SBA, VICTORY, DEFEAT }
 
 @export var damage_popup_scene: PackedScene 
+
+# 📦 Arraste o seu 'HeroStatusCard.tscn' aqui pelo painel Inspector!
+@export var hero_status_card_prefab: PackedScene 
 
 var current_state: CombatState = CombatState.INITIALIZING
 var combat_data: CombatData
@@ -16,6 +20,7 @@ var active_party_ids: Array[String] = []
 var current_hero_index: int = 0
 var input_blocked: bool = false
 
+@export_group("Componentes de UI")
 @export var enemy_sprite: TextureRect
 @export var background_texture: TextureRect
 @export var ui_heroes_container: VBoxContainer  
@@ -36,18 +41,19 @@ func initialize_combat(data: CombatData) -> void:
 	if background_texture and combat_data.background:
 		background_texture.texture = combat_data.background
 	
-	
 	spawned_enemy = EnemyState.new()
 	spawned_enemy.initialize(combat_data.enemy)
 	enemy_sprite.texture = spawned_enemy.blueprint.combat_sprite
-	spawned_enemy.died.connect(_on_enemy_died)
 	spawned_enemy.hp_changed.connect(_on_enemy_hp_changed)
 	
 	if enemy_hp_bar:
 		enemy_hp_bar.max_value = spawned_enemy.get_max_hp()
 		enemy_hp_bar.value = spawned_enemy.current_hp
 	
+	# 1. Filtra a equipe viva e instancia os nós dos cartões na árvore (PartyContainer)
 	_update_active_party_list()
+	
+	# 2. ATUALIZAÇÃO VISUAL: Garante que cada cartão instanciado desenhe o texto de HP e Nível!
 	for hero_id in active_party_ids:
 		_update_hero_ui_display(hero_id)
 		
@@ -78,7 +84,7 @@ func _finish_current_hero_turn() -> void:
 
 func _start_enemy_turn() -> void:
 	current_state = CombatState.ENEMY_TURN
-	ui_command_buttons.hide_commands()
+	if ui_command_buttons: ui_command_buttons.hide_commands()
 	await get_tree().create_timer(0.4).timeout
 	_execute_enemy_attack()
 
@@ -86,7 +92,7 @@ func _finish_enemy_turn() -> void:
 	current_hero_index = 0
 	_next_hero_turn()
 
-# --- AÇÕES ---
+# --- AÇÕES DE ATAQUE ---
 
 func execute_hero_basic_attack() -> void:
 	if input_blocked or current_state != CombatState.HERO_TURN:
@@ -94,16 +100,20 @@ func execute_hero_basic_attack() -> void:
 	input_blocked = true
 	
 	var hero_id = active_party_ids[current_hero_index]
-	var hero_state = PlayerData.get_heroi(hero_id)
+	var hero_state = PlayerData.get_hero(hero_id)
 	
-	var damage_dealt: int = hero_state.get_ataque()
+	var damage_dealt: int = hero_state.get_attack()
 	var element: String = "PHYSICAL"
 	
-	spawned_enemy.receber_dano_combate(damage_dealt, element)
+	# 1. Aplica as alterações numéricas brutas
+	spawned_enemy.receive_combat_damage(damage_dealt, element)
 	_trigger_enemy_damage_popup(damage_dealt, element)
 	
-	_check_end_conditions()
-	if current_state == CombatState.INITIALIZING or current_state == CombatState.HERO_TURN:
+	# 2. Roda a State-Based Action para verificar mortes ANTES de avançar o turno
+	_run_state_based_actions()
+	
+	# 3. Só continua o fluxo normal se a SBA não tiver decretado fim de jogo
+	if current_state == CombatState.HERO_TURN:
 		_finish_current_hero_turn()
 
 func execute_hero_skill(skill: SkillData) -> void:
@@ -112,72 +122,101 @@ func execute_hero_skill(skill: SkillData) -> void:
 	input_blocked = true
 	
 	var hero_id = active_party_ids[current_hero_index]
-	var hero_state = PlayerData.get_heroi(hero_id)
+	var hero_state = PlayerData.get_hero(hero_id)
 	
-	var damage_base: int = int(hero_state.get_ataque() * skill.damage_multiplier)
-	spawned_enemy.receber_dano_combate(damage_base, skill.element_type)
+	var damage_base: int = int(hero_state.get_attack() * skill.damage_multiplier)
+	spawned_enemy.receive_combat_damage(damage_base, skill.element_type)
 	_trigger_enemy_damage_popup(damage_base, skill.element_type)
 	
-	_check_end_conditions()
-	if current_state == CombatState.INITIALIZING or current_state == CombatState.HERO_TURN:
+	_run_state_based_actions()
+	
+	if current_state == CombatState.HERO_TURN:
 		_finish_current_hero_turn()
 
 func _execute_enemy_attack() -> void:
 	if active_party_ids.is_empty():
-		_check_end_conditions()
+		_run_state_based_actions()
 		return
 		
 	var random_index: int = randi() % active_party_ids.size()
 	var target_hero_id: String = active_party_ids[random_index]
-	var target_hero = PlayerData.get_heroi(target_hero_id)
+	var target_hero = PlayerData.get_hero(target_hero_id)
 	
-	if not target_hero or target_hero.hp_atual <= 0:
+	if not target_hero or target_hero.current_hp <= 0:
 		_finish_enemy_turn()
 		return
 		
-	var damage_dealt = spawned_enemy.get_ataque()
+	var damage_dealt = spawned_enemy.get_attack()
 	target_hero.take_damage_combat(damage_dealt, "PHYSICAL")
 	
 	_trigger_damage_popup(target_hero_id, damage_dealt, "PHYSICAL")
 	_update_hero_ui_display(target_hero_id)
 	
-	if target_hero.hp_atual <= 0:
+	if target_hero.current_hp <= 0:
 		active_party_ids.remove_at(random_index)
 	
-	_check_end_conditions()
+	_run_state_based_actions()
+	
 	if current_state == CombatState.ENEMY_TURN:
 		_finish_enemy_turn()
 
-# --- CONDICIONAIS DE FIM (AVISA A MAIN) ---
+# --- 🃏 STATE-BASED ACTIONS (ESTILO MTG) ---
 
-func _check_end_conditions() -> void:
-	if spawned_enemy and spawned_enemy.hp_atual <= 0:
+func _run_state_based_actions() -> void:
+	# Guarda o estado original para saber se mudou
+	var original_state = current_state
+	current_state = CombatState.CHECKING_SBA
+	
+	# Condição de Vitória: Inimigo com 0 ou menos de HP
+	if spawned_enemy and spawned_enemy.current_hp <= 0:
 		current_state = CombatState.VICTORY
-		_on_enemy_died()
-	elif active_party_ids.is_empty():
+		_on_combat_settled(true)
+		return
+		
+	# Condição de Derrota: Equipe ativa totalmente vazia
+	if active_party_ids.is_empty():
 		current_state = CombatState.DEFEAT
-		_on_player_defeat()
+		_on_combat_settled(false)
+		return
+		
+	# Se ninguém morreu, devolve o estado para o fluxo continuar de onde parou
+	current_state = original_state
 
-func _on_enemy_died() -> void:
-	ui_command_buttons.hide_commands()
-	combat_finished.emit(true) # Emitindo o sinal nativo do Godot 4!
+## Executa o encerramento da cena de forma estrita e isolada
+func _on_combat_settled(victory: bool) -> void:
+	input_blocked = true
+	if ui_command_buttons: 
+		ui_command_buttons.hide_commands()
+		
+	print("🏁 [SBA System] Combat strictly settled. Victory: ", victory)
+	combat_finished.emit(victory)
 
-func _on_player_defeat() -> void:
-	ui_command_buttons.hide_commands()
-	combat_finished.emit(false) # Perdeu a batalha
+# --- SISTEMAS DE UI ---
 
-# --- SISTEMAS DE UI (IGUAIS AO SEU ORIGINAL) ---
-func _on_enemy_hp_changed(novo_hp: int, _max_hp: int, _mudanca: int) -> void:
+func _on_enemy_hp_changed(new_hp: int, _max_hp: int, _change: int) -> void:
 	if enemy_hp_bar:
 		var tween = create_tween()
-		tween.tween_property(enemy_hp_bar, "value", novo_hp, 0.45)
+		tween.tween_property(enemy_hp_bar, "value", new_hp, 0.45)
 
 func _update_active_party_list() -> void:
 	active_party_ids.clear()
+	
+	# Limpa qualquer cartão que sobrou de lutas anteriores no contêiner
+	if ui_heroes_container:
+		for child in ui_heroes_container.get_children():
+			child.queue_free()
+	
+	# Varre os heróis ativos do PlayerData
 	for hero_id in PlayerData.active_party:
 		var hero_state = PlayerData.get_hero(hero_id)
 		if hero_state and hero_state.current_hp > 0:
 			active_party_ids.append(hero_id)
+			
+			# INSTANCIAÇÃO DINÂMICA: Cria o cartão na hora!
+			if hero_status_card_prefab and ui_heroes_container:
+				var new_card = hero_status_card_prefab.instantiate()
+				new_card.name = hero_id # Define o nome do nó como o ID (ex: "hero_01")
+				ui_heroes_container.add_child(new_card)
 
 func _manage_ui_highlight(hero_id: String) -> void:
 	if not ui_heroes_container: return
@@ -189,10 +228,10 @@ func _update_hero_ui_display(hero_id: String) -> void:
 	if not ui_heroes_container: return
 	var hero_card = ui_heroes_container.get_node_or_null(hero_id)
 	if hero_card and hero_card.has_method("configurar_card"):
-		var hero_state = PlayerData.get_heroi(hero_id)
+		var hero_state = PlayerData.get_hero(hero_id)
 		if hero_state: hero_card.configurar_card(hero_state)
 
-func _trigger_enemy_damage_popup(damage_amount: int, element_type: String) -> void:
+func _trigger_enemy_damage_popup(damage_amount: int, _element_type: String) -> void:
 	if not damage_popup_scene or not enemy_sprite: return
 	var popup = damage_popup_scene.instantiate() as Label
 	popup.text = str(damage_amount)
@@ -203,7 +242,7 @@ func _trigger_enemy_damage_popup(damage_amount: int, element_type: String) -> vo
 	tween.tween_property(popup, "modulate:a", 0.0, 0.6)
 	tween.chain().tween_callback(popup.queue_free)
 
-func _trigger_damage_popup(target_id: String, damage_amount: int, element_type: String) -> void:
+func _trigger_damage_popup(target_id: String, damage_amount: int, _element_type: String) -> void:
 	if not damage_popup_scene: return
 	var popup = damage_popup_scene.instantiate() as Label
 	popup.text = str(damage_amount)

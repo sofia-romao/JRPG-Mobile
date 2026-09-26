@@ -1,0 +1,55 @@
+[gd_scene format=3 uid="uid://dbtxuhojfjj8q"]
+
+[ext_resource type="Script" uid="uid://cpas8m8nxxu1c" path="res://scenes/mission_card.gd" id="1_ti41e"]
+[ext_resource type="Texture2D" uid="uid://bwi77x5m5uiut" path="res://icon.svg" id="2_xo4n8"]
+
+[node name="MissionCard" type="Button" unique_id=1703486652 node_paths=PackedStringArray("title_label", "description_label", "margin_container")]
+custom_minimum_size = Vector2(1000, 80)
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_ti41e")
+title_label = NodePath("MarginContainer/HBoxContainer/TitleLabel")
+description_label = NodePath("MarginContainer/HBoxContainer/DescriptionLabel")
+margin_container = NodePath("MarginContainer")
+
+[node name="MarginContainer" type="MarginContainer" parent="." unique_id=2129938305]
+layout_mode = 1
+offset_right = 204.0
+offset_bottom = 128.0
+theme_override_constants/margin_left = 0
+theme_override_constants/margin_top = 0
+theme_override_constants/margin_right = 0
+theme_override_constants/margin_bottom = 0
+
+[node name="TextureRect" type="TextureRect" parent="MarginContainer" unique_id=671201493]
+layout_mode = 2
+texture = ExtResource("2_xo4n8")
+stretch_mode = 5
+
+[node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer" unique_id=708147872]
+layout_mode = 2
+
+[node name="TitleLabel" type="Label" parent="MarginContainer/HBoxContainer" unique_id=1776354760]
+custom_minimum_size = Vector2(100, 80)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "asdasda"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="DescriptionLabel" type="Label" parent="MarginContainer/HBoxContainer" unique_id=193720062]
+custom_minimum_size = Vector2(100, 80)
+layout_mode = 2
+
+[node name="OverlayTrancado" type="ColorRect" parent="." unique_id=247004520]
+visible = false
+layout_mode = 1
+anchors_preset = -1
+anchor_right = 1.2570001
+anchor_bottom = 1.8270001
+offset_right = -754.2001
+offset_bottom = -146.16
+color = Color(0.94509804, 0.011764706, 0.011764706, 0.42745098)

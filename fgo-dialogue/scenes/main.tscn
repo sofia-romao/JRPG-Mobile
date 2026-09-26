@@ -1,12 +1,9 @@
 [gd_scene format=3 uid="uid://dv3q36sendh72"]
 
 [ext_resource type="Script" uid="uid://cik0r7kimoruy" path="res://main.gd" id="1_0wfyh"]
-[ext_resource type="PackedScene" uid="uid://bfktfdy7yeljp" path="res://scenes/party_selection_menu.tscn" id="2_sugp2"]
 
-[node name="Main" type="Node" unique_id=1439246879 node_paths=PackedStringArray("scene_container")]
+[node name="MainController" type="Node" unique_id=1439246879 node_paths=PackedStringArray("scene_container")]
 script = ExtResource("1_0wfyh")
 scene_container = NodePath("SceneContainer")
 
 [node name="SceneContainer" type="Node" parent="." unique_id=1708542841]
-
-[node name="PartySelectionMenu" parent="." unique_id=928408070 instance=ExtResource("2_sugp2")]

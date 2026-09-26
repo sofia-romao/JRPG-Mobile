@@ -5,7 +5,7 @@ class_name MainController
 @export_category("Containers")
 @export var scene_container: Node
 
-const EXPLORATION_SCENE_PATH = "res://test_exploration_scene.tscn"
+const EXPLORATION_SCENE_PATH = "res://scenes/party_selection_menu.tscn"
 const DIALOGUE_SCENE_PATH = "res://scenes/dialogue_box.tscn"
 const COMBAT_SCENE_PATH = "res://scenes/combat_manager.tscn"
 
@@ -59,12 +59,16 @@ func _on_exploration_requested_dialogue(event: GameEvent) -> void:
 
 func _on_dialogue_finished() -> void:
 	await get_tree().process_frame
+	# Se um combate acabou de ser armado, ignora o fechamento comum do diálogo!
+	if _current_combat_data != null: 
+		return
+		
 	_transition_to_scene(EXPLORATION_SCENE_PATH)
 
 func _on_dialogue_triggered_event(event: GameEvent) -> void:
 	if event == null: return
 	
-	PlayerData.mission_in_progress = event.is_mission_in_progress
+	PlayerData.is_mission_in_progress = event.is_mission_in_progress
 	
 	match event.action_type:
 		GameEvent.ActionType.START_COMBAT:
@@ -80,22 +84,22 @@ func _on_dialogue_triggered_event(event: GameEvent) -> void:
 				combat_arena.initialize_combat(_current_combat_data)
 			
 		GameEvent.ActionType.COMPLETE_MISSION:
-			PlayerData.missao_em_andamento = false
-			PlayerData.curar_party_ativa()
+			PlayerData.is_mission_in_progress = false
+			PlayerData.heal_active_party()
 			
 		GameEvent.ActionType.MODIFY_ATTRIBUTE:
 			if event.hero_id != "":
 				if event.hp_modifier != 0: 
-					PlayerData.atualizar_hp_por_id(event.hero_id, event.hp_modifier)
+					PlayerData.update_hp_by_id(event.hero_id, event.hp_modifier)
 			else:
 				if event.hp_modifier != 0:
 					for id in PlayerData.party_ativa: 
-						PlayerData.atualizar_hp_por_id(id, event.hp_modifier)
+						PlayerData.update_hp_by_id(id, event.hp_modifier)
 						
 		GameEvent.ActionType.FULL_HEAL:
 			if event.hero_id != "":
-				var hero = PlayerData.get_heroi(event.hero_id)
-				if hero: hero.curar_total()
+				var hero = PlayerData.get_hero(event.hero_id)
+				if hero: hero.full_heal()
 			else:
 				PlayerData.heal_active_party()
 
@@ -109,8 +113,8 @@ func _on_combat_finished(victory: bool) -> void:
 			_on_dialogue_triggered_event(post_combat_event)
 			return
 			
-		if not PlayerData.missao_em_andamento:
-			PlayerData.curar_party_ativa()
+		if not PlayerData.is_mission_in_progress:
+			PlayerData.heal_active_party()
 			
 		_current_combat_data = null
 		_transition_to_scene(EXPLORATION_SCENE_PATH)

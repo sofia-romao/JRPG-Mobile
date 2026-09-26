@@ -1,0 +1,39 @@
+[gd_resource type="Resource" script_class="MissionData" format=3 uid="uid://byri7tqs2rp5l"]
+
+[ext_resource type="Script" uid="uid://6ulkprshou6x" path="res://mission_data.gd" id="1_s4j2y"]
+[ext_resource type="Script" uid="uid://dch8afiewdldy" path="res://story_choice.gd" id="2_s1hkt"]
+[ext_resource type="Script" uid="uid://ddx8q47y5l7w7" path="res://story_line.gd" id="3_nv0k1"]
+[ext_resource type="Resource" uid="uid://dbr1tpkwafry2" path="res://resources/combat_encounter/test_combat.tres" id="3_s1hkt"]
+[ext_resource type="Script" uid="uid://nld3nwsy6uln" path="res://game_event.gd" id="4_hqllc"]
+
+[sub_resource type="Resource" id="Resource_583js"]
+script = ExtResource("4_hqllc")
+action_type = 1
+combat_data = ExtResource("3_s1hkt")
+metadata/_custom_type_script = "uid://nld3nwsy6uln"
+
+[sub_resource type="Resource" id="Resource_lqyvv"]
+script = ExtResource("2_s1hkt")
+choice_text = "Engage in Combat!"
+trigger_game_event = SubResource("Resource_583js")
+metadata/_custom_type_script = "uid://dch8afiewdldy"
+
+[sub_resource type="Resource" id="Resource_hkp0v"]
+script = ExtResource("3_nv0k1")
+character_name = "Mash"
+text = "Senpai, a hostile presence is blocking the server room!"
+metadata/_custom_type_script = "uid://ddx8q47y5l7w7"
+
+[sub_resource type="Resource" id="Resource_iekp2"]
+script = ExtResource("4_hqllc")
+dialogue_lines = Array[ExtResource("3_nv0k1")]([SubResource("Resource_hkp0v")])
+choices = Array[ExtResource("2_s1hkt")]([SubResource("Resource_lqyvv")])
+metadata/_custom_type_script = "uid://nld3nwsy6uln"
+
+[resource]
+script = ExtResource("1_s4j2y")
+id = "jack_frost_01"
+title = "Jack Frost Infiltration"
+description = "Defeat the rogue demon blocking the server room corridor."
+start_event = SubResource("Resource_iekp2")
+metadata/_custom_type_script = "uid://6ulkprshou6x"
