@@ -6,7 +6,7 @@
 [resource]
 script = ExtResource("1_hksuq")
 id = "altria"
-nome = "Altria"
-cor_tema = Color(0.41359308, 0.70002633, 1, 1)
-icone_avatar = ExtResource("1_qwesp")
+character_name = "Altria"
+theme_color = Color(0.40392157, 0.6392157, 1, 1)
+avatar_icon = ExtResource("1_qwesp")
 metadata/_custom_type_script = "uid://bln4pkc2ot1or"

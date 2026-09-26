@@ -1,9 +1,9 @@
 extends Node
 # 💾 PLAYERDATA - Fonte de Verdade Global do Progresso do Jogador
-@export var herois_disponiveis: Array[HeroData] = []
+@export var available_heroes: Array[HeroData] = []
 const MAX_PARTY_SIZE : int = 3
 
-var missao_em_andamento: bool = false
+var mission_in_progress: bool = false
 var id_active_mission: String = ""
 
 
@@ -16,18 +16,18 @@ var active_party: Array[String] = []
 ## Adiciona XP para qualquer herói da coleção
 func add_exp(id_heroi: String, quantidade: int) -> void:
 	if hero_collection.has(id_heroi):
-		var heroi: HeroState = hero_collection[id_heroi]
-		var nivel_antigo = heroi.get_nivel()
+		var hero: HeroState = hero_collection[id_heroi]
+		var previous_level = hero.get_level()
 		
-		heroi.xp_atual += quantidade
-		print("✨ [PlayerData] %s ganhou %d de XP! Total: %d" % [id_heroi, quantidade, heroi.xp_atual])
+		hero.current_exp += quantidade
+		print("✨ [PlayerData] %s ganhou %d de XP! Total: %d" % [id_heroi, quantidade, hero.current_exp])
 		
 		# Se subiu de nível, você pode opcionalmente curar o herói ou rodar um VFX
-		if heroi.get_nivel() > nivel_antigo:
-			print("🆙 [PlayerData] %s subiu para o nível %d!" % [heroi.blueprint.nome, heroi.get_nivel()])
+		if hero.get_level() > previous_level:
+			print("🆙 [PlayerData] %s subiu para o nível %d!" % [hero.blueprint.nome, hero.get_level()])
 
 ## Aplica dano ou cura passando valores positivos (cura) ou negativos (dano)
-func atualizar_hp_por_id(id_heroi: String, modificador: int) -> void:
+func update_hp_by_id(id_heroi: String, modificador: int) -> void:
 	if hero_collection.has(id_heroi):
 		var heroi: HeroState = hero_collection[id_heroi]
 		heroi.modificar_hp(modificador)
@@ -63,20 +63,20 @@ func _load_heroes_from_folder() -> void:
 				
 				if data:
 					# Instancia o estado dinâmico exatamente como fazíamos antes
-					var novo_estado = HeroState.new()
-					novo_estado.blueprint = data
-					novo_estado.current_exp = 0
-					novo_estado.total_recovery()
+					var new_state = HeroState.new()
+					new_state.blueprint = data
+					new_state.current_exp = 0
+					new_state.total_recovery()
 					
-					hero_collection[data.id] = novo_estado
+					hero_collection[data.id] = new_state
 					# Como deve ficar corrigido:
-					var nome_para_print = "Herói"
+					var name_for_print = "Herói"
 					if "nome" in data:
-						nome_para_print = data.nome
+						name_for_print = data.nome
 					elif "character_name" in data:
-						nome_para_print = data.character_name
+						name_for_print = data.character_name
 
-					print("📦 [PlayerData] Herói carregado automaticamente: %s" % nome_para_print)
+					print("📦 [PlayerData] Herói carregado automaticamente: %s" % name_for_print)
 
 			nome_arquivo = dir.get_next()
 		dir.list_dir_end()

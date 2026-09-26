@@ -16,7 +16,7 @@ func _ready() -> void:
 		push_warning("Exploration: Don't forget to assign 'jack_frost.tres' in the Inspector!")
 
 func _update_map_ui() -> void:
-	if PlayerData.missao_em_andamento:
+	if PlayerData.mission_in_progress:
 		mission_button.text = "Continue Mission (Part 2)"
 		abort_button.visible = true
 	else:
@@ -28,7 +28,7 @@ func _on_botao_missao_pressed() -> void:
 	var new_lines: Array[StoryLine] = []
 	var new_choices: Array[StoryChoice] = []
 	
-	if not PlayerData.missao_em_andamento:
+	if not PlayerData.mission_in_progress:
 		# --- PART 1: JACK FROST EMBUSH ---
 		var l1 = StoryLine.new()
 		l1.character_name = "Mash"
@@ -74,8 +74,8 @@ func _on_botao_missao_pressed() -> void:
 	print("🚀 [Exploration] Emitting 'mission_started' with Jack Frost setup...")
 	mission_started.emit(event)
 
-func _on_botao_abortar_pressed() -> void:
-	PlayerData.missao_em_andamento = false
+func _on_abort_button_pressed() -> void:
+	PlayerData.mission_in_progress = false
 	PlayerData.heal_active_party()
 	print("❌ [Exploration] Mission aborted! Team fully healed.")
 	_update_map_ui()

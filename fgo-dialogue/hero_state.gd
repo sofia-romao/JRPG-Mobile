@@ -8,9 +8,9 @@ extends Resource # Usamos Resource para facilitar o sistema de Save/Load no futu
 signal changed_hp(new_hp: int, max_hp: int, change: int)
 
 ## Atualiza o HP garantindo os limites e emite o sinal para a UI mobile
-func modificar_hp(quantidade: int) -> void:
+func modify_hp(amount: int) -> void:
 	var old_hp = current_hp
-	current_hp = clamp(current_hp + quantidade, 0, get_max_hp())
+	current_hp = clamp(current_hp + amount, 0, get_max_hp())
 	var change = current_hp - old_hp
 	
 	if change != 0:
@@ -76,7 +76,7 @@ func take_damage_combat(damage_base: int, element_type: String) -> bool:
 	var final_damage: int = int(damage_base * multiplier)
 	
 	# O dano reduz o HP, por isso passamos o valor negativo para a nossa função
-	modificar_hp(-final_damage) 
+	modify_hp(-final_damage) 
 	
 	print("⚔️ [HeroState] %s recebeu %d de dano (%s). Multiplicador: %f" % [blueprint.character_name, final_damage, element_type, multiplier])
 	

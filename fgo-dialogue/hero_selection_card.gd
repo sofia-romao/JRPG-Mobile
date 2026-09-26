@@ -1,4 +1,3 @@
-# hero_selection_card.gd (Apenas a função de inicialização traduzida)
 extends Button
 signal card_clicked(hero_id: String)
 
@@ -9,9 +8,20 @@ signal card_clicked(hero_id: String)
 @export var margin_container: MarginContainer
 
 var hero_id: String = ""
+var displacement_tween: Tween 
+var is_visually_selected: bool = false
+
+# Adicione esta linha para registrar o clique do botão no próprio Godot!
+func _pressed() -> void:
+	card_clicked.emit(hero_id)
 
 func initialize_card(id: String, hero_state: HeroState, is_in_party: bool, is_locked: bool) -> void:
 	hero_id = id
+	print("--- DEBUG DO HERÓI ---")
+	print("Objeto blueprint inteiro: ", hero_state.blueprint)
+	if hero_state.blueprint:
+		print("Variável character_name: '", hero_state.blueprint.character_name, "'")
+	
 	name_label.text = hero_state.blueprint.character_name
 	hp_label.text = "HP: %d/%d" % [hero_state.current_hp, hero_state.get_max_hp()]
 	
@@ -22,43 +32,27 @@ func initialize_card(id: String, hero_state: HeroState, is_in_party: bool, is_lo
 		lock_overlay.visible = is_locked
 	disabled = is_locked
 	
+	# Chamamos a animação diretamente
 	_animate_displacement(is_in_party)
-var displacement_tween: Tween # Guarda a referência do tween para evitar sobreposição
-
-
-var is_visually_selected: bool = false
 
 func _animate_displacement(selected: bool) -> void:
 	if not margin_container: return
 	
-	# 1. Se o estado visual não mudou, ignora para não estragar tweens ativos
-	if is_visually_selected == selected:
+	# Se o estado não mudou, não faz nada
+	if is_visually_selected == selected and displacement_tween != null:
 		return
 		
 	is_visually_selected = selected
 
-	# 2. ESPERA UM FRAME: Dá tempo para o ScrollContainer/GridContainer terminar de 
-	# calcular o layout inicial da tela e não atropelar o nosso Tween!
-	await get_tree().process_frame
-	
-	# Proteção caso o cartão tenha sido deletado enquanto esperávamos o frame
-	if not is_inside_tree() or not margin_container: 
-		return
-
 	if displacement_tween and displacement_tween.is_valid():
 		displacement_tween.kill()
 
-	# 3. Em vez de mover o nó fisicamente (o que o contêiner proíbe),
-	# nós alteramos a margem interna real usando a sintaxe segura do Godot 4
-	var target_margin = 25 if selected else 0
-	var current_margin = margin_container.get_theme_constant("margin_left")
+	var target_offset = 25.0 if selected else 0.0
 
 	displacement_tween = create_tween().set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_CUBIC)
 	
-	# Animamos a margem interna. Isso força o conteúdo a deslizar de forma nativa e segura!
-	displacement_tween.tween_method(
-		func(val: int): margin_container.add_theme_constant_override("margin_left", val),
-		current_margin,
-		target_margin,
-		0.18
-	)
+	# SOLUÇÃO COMPATÍVEL COM CONTAINERS: 
+	# Em vez de mexer no tema, movemos a posição X local do MarginContainer.
+	# Como ele é filho direto do Button (que tem tamanho fixo), isso funciona perfeitamente
+	# e ignora as travas do GridContainer pai.
+	displacement_tween.tween_property(margin_container, "position:x", target_offset, 0.18)

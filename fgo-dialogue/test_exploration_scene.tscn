@@ -32,4 +32,4 @@ offset_bottom = 86.0
 text = "Abortar"
 
 [connection signal="pressed" from="BotaoMissao" to="." method="_on_botao_missao_pressed"]
-[connection signal="pressed" from="BotaoAbortar" to="." method="_on_botao_abortar_pressed"]
+[connection signal="pressed" from="BotaoAbortar" to="." method="_on_abort_button_pressed"]

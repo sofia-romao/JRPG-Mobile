@@ -19,7 +19,7 @@ var current_hp: int = 0:
 		if current_hp == 0:
 			died.emit()
 
-func inicialize(base_data: EnemyData) -> void:
+func initialize(base_data: EnemyData) -> void:
 	blueprint = base_data
 	current_hp = get_max_hp()
 
@@ -32,7 +32,7 @@ func get_attack() -> int:
 	return blueprint.base_atk # Sincronizado com o EnemyData em português!
 
 ## Recebe o dano base e o elemento enviado pelo herói.
-func recieve_combat_damage(base_dmg: int, element_type: String) -> bool:
+func receive_combat_damage(base_dmg: int, element_type: String) -> bool:
 	if not blueprint: return false
 	
 	var multiplier: float = 1.0

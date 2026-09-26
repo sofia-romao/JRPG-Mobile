@@ -23,7 +23,7 @@ func update_menu_ui() -> void:
 	for child in grid_container.get_children():
 		child.queue_free()
 		
-	var is_locked: bool = PlayerData.missao_em_andamento
+	var is_locked: bool = PlayerData.mission_in_progress
 	if locked_warning_label:
 		locked_warning_label.visible = is_locked
 		locked_warning_label.text = "⚠️ MISSION IN PROGRESS - PARTY LOCKED"
@@ -44,19 +44,19 @@ func update_menu_ui() -> void:
 		new_card.card_clicked.connect(_on_card_selected)
 
 func _on_card_selected(hero_id: String) -> void:
-	if PlayerData.missao_em_andamento: return
+	if PlayerData.mission_in_progress: return
 		
-	if PlayerData.party_ativa.has(hero_id):
-		PlayerData.party_ativa.erase(hero_id)
+	if PlayerData.active_party.has(hero_id):
+		PlayerData.active_party.erase(hero_id)
 	else:
-		if PlayerData.party_ativa.size() < PlayerData.MAX_PARTY_SIZE:
-			PlayerData.party_ativa.append(hero_id)
+		if PlayerData.active_party.size() < PlayerData.MAX_PARTY_SIZE:
+			PlayerData.active_party.append(hero_id)
 			
 	for card in grid_container.get_children():
 		var id = card.get("hero_id") if "hero_id" in card else card.name
-		var hero_state = PlayerData.get_heroi(id)
-		var is_in_party = PlayerData.party_ativa.has(id)
-		var is_locked = PlayerData.missao_em_andamento
+		var hero_state = PlayerData.get_hero(id)
+		var is_in_party = PlayerData.active_party.has(id)
+		var is_locked = PlayerData.mission_in_progress
 		
 		if card.has_method("initialize_card"):
 			card.initialize_card(id, hero_state, is_in_party, is_locked)

@@ -38,7 +38,7 @@ func initialize_combat(data: CombatData) -> void:
 	
 	
 	spawned_enemy = EnemyState.new()
-	spawned_enemy.inicialize(combat_data.enemy)
+	spawned_enemy.initialize(combat_data.enemy)
 	enemy_sprite.texture = spawned_enemy.blueprint.combat_sprite
 	spawned_enemy.died.connect(_on_enemy_died)
 	spawned_enemy.hp_changed.connect(_on_enemy_hp_changed)

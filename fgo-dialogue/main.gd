@@ -64,7 +64,7 @@ func _on_dialogue_finished() -> void:
 func _on_dialogue_triggered_event(event: GameEvent) -> void:
 	if event == null: return
 	
-	PlayerData.missao_em_andamento = event.is_mission_in_progress
+	PlayerData.mission_in_progress = event.is_mission_in_progress
 	
 	match event.action_type:
 		GameEvent.ActionType.START_COMBAT:

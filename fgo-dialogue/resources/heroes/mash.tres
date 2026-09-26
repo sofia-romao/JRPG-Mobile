@@ -6,6 +6,6 @@
 [resource]
 script = ExtResource("1_dlrhb")
 id = "mash"
-nome = "Mash"
-icone_avatar = ExtResource("1_7th1m")
+character_name = "Mash"
+avatar_icon = ExtResource("1_7th1m")
 metadata/_custom_type_script = "uid://bln4pkc2ot1or"
