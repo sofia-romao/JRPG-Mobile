@@ -8,7 +8,8 @@ enum ActionType {
 	START_COMBAT, 
 	COMPLETE_MISSION, 
 	MODIFY_ATTRIBUTE,
-	FULL_HEAL 
+	FULL_HEAL,
+	UNLOCK_HERO 
 }
 
 @export_category("Dialogue Flow")

@@ -2,6 +2,7 @@ extends Node
 # 💾 PLAYERDATA - Fonte de Verdade Global do Progresso do Jogador
 @export var available_heroes: Array[HeroData] = []
 const MAX_PARTY_SIZE : int = 3
+const INITIAL_HERO_IDS: Array[String] = ["altria"]
 
 var active_mission_id: String = ""
 var completed_missions: Array[String] = [] # Salva os IDs das missões finalizadas
@@ -45,9 +46,12 @@ func heal_active_party() -> void:
 func get_hero(id_hero: String) -> HeroState:
 	return hero_collection.get(id_hero, null)
 func _ready() -> void:
-	_load_heroes_from_folder()
-	# ... seu código de inicialização ou testes ...
-
+	# --- MODO DE JOGO NORMAL ---
+	_load_initial_heroes()
+	
+	# --- MODO DESENVOLVEDOR / TESTES ---
+	# Descomente a linha abaixo e comente a de cima para testar com TODOS os heróis da pasta!
+	# _load_heroes_from_folder()
 func _load_heroes_from_folder() -> void:
 	var caminho_pasta = "res://resources/heroes/"
 	var dir = DirAccess.open(caminho_pasta)
@@ -83,3 +87,40 @@ func _load_heroes_from_folder() -> void:
 		dir.list_dir_end()
 	else:
 		push_error("PlayerData: Não foi possível acessar a pasta de heróis em: " + caminho_pasta)
+# No seu PlayerData.gd
+
+## Adiciona um herói novo à coleção do jogador usando a ID dele
+func add_hero_to_collection(hero_id: String) -> void:
+	# Evita duplicar se o jogador já tiver o herói
+	if hero_collection.has(hero_id):
+		print("⚠️ [PlayerData] Hero already unlocked: ", hero_id)
+		return
+		
+	# Monta o caminho do arquivo do herói dinamicamente
+	var path = "res://resources/heroes/" + hero_id + ".tres"
+	
+	# Na Web/Mobile, o arquivo real pode estar com o sufixo .remap se for verificado em disco,
+	# mas o 'load()' do Godot aceita o caminho original '.tres' perfeitamente em runtime!
+	if ResourceLoader.exists(path) or ResourceLoader.exists(path + ".remap"):
+		var data = load(path) as HeroData
+		if data:
+			var new_state = HeroState.new()
+			new_state.blueprint = data
+			new_state.current_exp = 0
+			new_state.full_heal()
+			
+			hero_collection[hero_id] = new_state
+			print("🏅 [PlayerData] NEW HERO UNLOCKED: ", data.character_name)
+			
+			# 💾 Salva o jogo na hora para o jogador não perder o herói novo!
+			if SaveManager.has_method("save_game"):
+				SaveManager.save_game()
+	else:
+		push_error("[PlayerData] Failed to find hero resource file at: " + path)
+func _load_initial_heroes() -> void:
+	hero_collection.clear()
+	
+	print("🛡️ [PlayerData] Initializing core starting roster...")
+	for hero_id in INITIAL_HERO_IDS:
+		# Chama a função de adicionar que criamos anteriormente!
+		add_hero_to_collection(hero_id)

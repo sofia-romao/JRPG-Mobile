@@ -6,7 +6,7 @@
 [ext_resource type="Script" uid="uid://2qf1pi0robua" path="res://command_menu.gd" id="3_iekp2"]
 [ext_resource type="PackedScene" uid="uid://dtka1msgfngt8" path="res://scenes/hero_status_card.tscn" id="4_iekp2"]
 
-[node name="CombatManager" type="Node" unique_id=1214775926 node_paths=PackedStringArray("enemy_sprite", "background_texture", "ui_heroes_container", "ui_command_buttons", "ui_skill_announcer", "enemy_hp_bar")]
+[node name="CombatManager" type="Node" unique_id=1214775926 node_paths=PackedStringArray("enemy_sprite", "background_texture", "ui_heroes_container", "ui_command_buttons", "enemy_hp_bar", "dialogue_label", "ui_dialogue_box", "visual_area_node", "screen_flash_effect")]
 script = ExtResource("1_w318q")
 damage_popup_scene = ExtResource("2_iekp2")
 hero_status_card_prefab = ExtResource("4_iekp2")
@@ -14,8 +14,11 @@ enemy_sprite = NodePath("VisualArea/EnemySprite")
 background_texture = NodePath("VisualArea/BackgroundTexture")
 ui_heroes_container = NodePath("UIArea/MainMobileLayout/PartyPanel/PartyContainer")
 ui_command_buttons = NodePath("UIArea/MainMobileLayout/CommandMenu")
-ui_skill_announcer = NodePath("")
 enemy_hp_bar = NodePath("VisualArea/EnemySprite/EnemyHPBar")
+dialogue_label = NodePath("UIArea/MainMobileLayout/CommandMenu/DialogueBox/DialogueLabel")
+ui_dialogue_box = NodePath("UIArea/MainMobileLayout/CommandMenu/DialogueBox")
+visual_area_node = NodePath("VisualArea")
+screen_flash_effect = NodePath("UIArea/ScreenFlashEffect")
 
 [node name="AudioStreamPlayer" type="AudioStreamPlayer" parent="." unique_id=1230456112]
 
@@ -79,12 +82,6 @@ size_flags_vertical = 3
 layout_mode = 2
 size_flags_vertical = 3
 
-[node name="DialogueBox" type="PanelContainer" parent="UIArea/MainMobileLayout" unique_id=1263481209]
-layout_mode = 2
-
-[node name="DialogueLabel" type="RichTextLabel" parent="UIArea/MainMobileLayout/DialogueBox" unique_id=1767918853]
-layout_mode = 2
-
 [node name="PartyPanel" type="PanelContainer" parent="UIArea/MainMobileLayout" unique_id=97544341]
 custom_minimum_size = Vector2(0, 200)
 layout_mode = 2
@@ -117,18 +114,6 @@ custom_minimum_size = Vector2(250, 100)
 layout_mode = 2
 text = "Skill"
 
-[node name="ItemsButton" type="Button" parent="UIArea/MainMobileLayout/CommandMenu/MenuContexts/MainButtons" unique_id=497166516]
-custom_minimum_size = Vector2(200, 100)
-layout_mode = 2
-text = "Item
-"
-
-[node name="RunButton" type="Button" parent="UIArea/MainMobileLayout/CommandMenu/MenuContexts/MainButtons" unique_id=828077455]
-custom_minimum_size = Vector2(50, 50)
-layout_mode = 2
-text = "Fuga
-"
-
 [node name="SkillsSubMenu" type="ScrollContainer" parent="UIArea/MainMobileLayout/CommandMenu/MenuContexts" unique_id=1869167631]
 custom_minimum_size = Vector2(80, 80)
 layout_mode = 2
@@ -143,6 +128,28 @@ size_flags_vertical = 3
 layout_mode = 2
 
 [node name="ItemsList" type="VBoxContainer" parent="UIArea/MainMobileLayout/CommandMenu/MenuContexts/ItemsSubMenu" unique_id=696869270]
+custom_minimum_size = Vector2(0, 200)
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
+
+[node name="DialogueBox" type="PanelContainer" parent="UIArea/MainMobileLayout/CommandMenu" unique_id=1263481209]
+custom_minimum_size = Vector2(0, 200)
+layout_mode = 2
+
+[node name="ColorRect" type="ColorRect" parent="UIArea/MainMobileLayout/CommandMenu/DialogueBox" unique_id=1493915956]
+layout_mode = 2
+color = Color(0.011764706, 0.011764706, 0.011764706, 1)
+
+[node name="DialogueLabel" type="RichTextLabel" parent="UIArea/MainMobileLayout/CommandMenu/DialogueBox" unique_id=1767918853]
+layout_mode = 2
+bbcode_enabled = true
+
+[node name="ScreenFlashEffect" type="ColorRect" parent="UIArea" unique_id=35238050]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(1, 1, 1, 0)

@@ -114,6 +114,10 @@ func _on_dialogue_triggered_event(event: GameEvent) -> void:
 					hero.total_recovery()
 			else:
 				PlayerData.heal_active_party()
+		GameEvent.ActionType.UNLOCK_HERO:
+			if event.hero_id != "":
+				print("✨ [Main] Narrative trigger: Unlocking hero -> ", event.hero_id)
+				PlayerData.add_hero_to_collection(event.hero_id)
 
 func _on_combat_finished(victory: bool) -> void:
 	print("🏁 Main: Combat finished! Victory: ", victory)

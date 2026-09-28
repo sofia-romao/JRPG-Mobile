@@ -26,7 +26,8 @@ func _ready() -> void:
 	mostrar_menu_principal()
 
 func mostrar_menu_principal() -> void:
-	show()
+	# ✅ ALTERADO: Deixamos o painel visível para segurar o layout do VBoxContainer
+	show() 
 	if main_buttons: main_buttons.show()
 	if skills_sub_menu: skills_sub_menu.hide()
 	if items_sub_menu: items_sub_menu.hide()
@@ -42,7 +43,10 @@ func show_commands_for(hero_id: String) -> void:
 
 ## Esconde todo o painel de comandos (usado no turno do inimigo)
 func hide_commands() -> void:
-	hide()
+	# 🔒 CORRIGIDO: Removemos o 'hide()' que quebrava o layout mobile!
+	# Como o DialogueBox vai ser desenhado por cima dele (Full Rect),
+	# não precisamos sumir com este nó. Ele fica no fundo sustentando a estrutura.
+	pass
 
 # --- INTERAÇÃO DOS BOTÕES PRINCIPAIS ---
 
@@ -77,7 +81,6 @@ func _populate_skills_list() -> void:
 	for skill_id in hero_state.get_available_skills():
 		var skill_data: SkillData = SkillsDatabase.get_skill(skill_id)
 
-		
 		if skill_data:
 			var button = Button.new()
 			button.alignment = HorizontalAlignment.HORIZONTAL_ALIGNMENT_LEFT

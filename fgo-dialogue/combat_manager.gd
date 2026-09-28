@@ -6,7 +6,30 @@ signal combat_finished(victory: bool)
 
 # CHECKING_SBA impede que qualquer herói avance ou ataque enquanto processamos mortes
 enum CombatState { INITIALIZING, HERO_TURN, ENEMY_TURN, CHECKING_SBA, VICTORY, DEFEAT }
-
+# --- DEFINIÇÃO DE CORES FORTES POR ELEMENTO (FLASH INTENSO) ---
+const ELEMENT_COLORS = {
+	"PHYSICAL": Color(1.8, 1.8, 1.8, 1.0), # Branco estourado (Brilho HDR)
+	"FIRE": Color(2.5, 0.4, 0.1, 1.0),     # Vermelho brasa incandescente
+	"ICE": Color(0.2, 1.5, 2.5, 1.0),      # Azul glacial brilhante
+	"ELEC": Color(2.5, 2.2, 0.2, 1.0),     # Amarelo relâmpago super forte
+	"HEAL": Color(0.2, 2.5, 0.5, 1.0)      # Verde cura radiante
+}
+# Renomeie a sua constante de cores atual para ENEMY_FLASH_COLORS
+const ENEMY_FLASH_COLORS = {
+	"PHYSICAL": Color(1.8, 1.8, 1.8, 1.0), 
+	"FIRE": Color(2.5, 0.4, 0.1, 1.0),     
+	"ICE": Color(0.2, 1.5, 2.5, 1.0),      
+	"ELEC": Color(2.5, 2.2, 0.2, 1.0),     
+	"HEAL": Color(0.2, 2.5, 0.5, 1.0)
+	}
+# Cores transparentes e suaves para o clarão de impacto na TELA INTEIRA (Primeira pessoa)
+const SCREEN_FLASH_COLORS = {
+	"PHYSICAL": Color(1.0, 1.0, 1.0, 0.5), # Clarão Branco translúcido
+	"FIRE": Color(1.0, 0.2, 0.0, 0.4),     # Clarão Avermelhado
+	"ICE": Color(0.0, 0.6, 1.0, 0.4),      # Clarão Azulado
+	"ELEC": Color(1.0, 0.9, 0.0, 0.5),     # Clarão Amarelado
+	"HEAL": Color(0.2, 1.0, 0.4, 0.3)      # Clarão Esverdeado
+}
 @export var damage_popup_scene: PackedScene 
 
 # 📦 Arraste o seu 'HeroStatusCard.tscn' aqui pelo painel Inspector!
@@ -19,14 +42,25 @@ var spawned_enemy: EnemyState
 var active_party_ids: Array[String] = []
 var current_hero_index: int = 0
 var input_blocked: bool = false
+# Guarda os tweens de flash ativos indexados pelo ID do herói para evitar duplicidade
+var _active_hero_flash_tweens: Dictionary = {}
+var _visual_area_original_position: Vector2 = Vector2.ZERO
 
 @export_group("Componentes de UI")
 @export var enemy_sprite: TextureRect
 @export var background_texture: TextureRect
 @export var ui_heroes_container: VBoxContainer  
-@export var ui_command_buttons: Control         
-@export var ui_skill_announcer: Control         
+@export var ui_command_buttons: Control                
 @export var enemy_hp_bar: ProgressBar           
+@export var dialogue_label: RichTextLabel
+@export var ui_dialogue_box: PanelContainer
+@export var visual_area_node: Control
+@export var screen_flash_effect: ColorRect 
+
+func _ready() -> void:
+	if visual_area_node:
+		_visual_area_original_position = visual_area_node.position
+
 
 ## Injeção de Dependência: A Main vai chamar esta função passando os dados do monstro!
 func initialize_combat(data: CombatData) -> void:
@@ -34,9 +68,6 @@ func initialize_combat(data: CombatData) -> void:
 	current_state = CombatState.INITIALIZING
 	input_blocked = false
 	current_hero_index = 0 
-	
-	if ui_skill_announcer:
-		ui_skill_announcer.hide()
 	
 	if background_texture and combat_data.background:
 		background_texture.texture = combat_data.background
@@ -50,7 +81,8 @@ func initialize_combat(data: CombatData) -> void:
 	if enemy_hp_bar:
 		enemy_hp_bar.max_value = spawned_enemy.get_max_hp()
 		enemy_hp_bar.value = spawned_enemy.current_hp
-	
+	if ui_dialogue_box: 
+		ui_dialogue_box.hide()
 	# 1. Filtra a equipe viva e instancia os nós dos cartões na árvore (PartyContainer)
 	_update_active_party_list()
 	
@@ -75,8 +107,9 @@ func _next_hero_turn() -> void:
 	
 	_manage_ui_highlight(hero_id)
 	input_blocked = false
-	ui_command_buttons.show_commands_for(hero_id)
-
+	
+	# Revela os botões retirando a sobreposição de diálogo
+	_alternar_interface_combate(true, hero_id)
 func _finish_current_hero_turn() -> void:
 	input_blocked = true
 	current_hero_index += 1 
@@ -85,10 +118,18 @@ func _finish_current_hero_turn() -> void:
 
 func _start_enemy_turn() -> void:
 	current_state = CombatState.ENEMY_TURN
-	if ui_command_buttons: ui_command_buttons.hide_commands()
-	await get_tree().create_timer(0.4).timeout
+	
+	# Ativa a sobreposição imediatamente (não há frames vazios, nada pula!)
+	_alternar_interface_combate(false)
+	
+	if ui_dialogue_box:
+		var label = ui_dialogue_box.get_node_or_null("DialogueLabel") as RichTextLabel
+		if label: 
+			label.text = "[center]Turno do Inimigo...[/center]"
+		
+	await get_tree().create_timer(0.6).timeout
 	_execute_enemy_attack()
-
+	
 func _finish_enemy_turn() -> void:
 	current_hero_index = 0
 	_next_hero_turn()
@@ -110,6 +151,8 @@ func execute_hero_basic_attack() -> void:
 	spawned_enemy.receive_combat_damage(damage_dealt, element)
 	_trigger_enemy_damage_popup(damage_dealt, element)
 	
+	_flash_enemy_color(element)
+	_trigger_enemy_shake(10.0)
 	# 2. Roda a State-Based Action para verificar mortes ANTES de avançar o turno
 	_run_state_based_actions()
 	
@@ -161,6 +204,8 @@ func execute_hero_skill(skill: SkillData) -> void:
 	var damage_base: int = int(hero_state.get_attack() * skill.damage_multiplier)
 	spawned_enemy.receive_combat_damage(damage_base, skill.element_type)
 	_trigger_enemy_damage_popup(damage_base, skill.element_type)
+	_flash_enemy_color(skill.element_type)
+	_trigger_enemy_shake(10.0)
 	# 🔊 2. Toca o som de impacto no momento exato do popup de dano
 	if skill.sound_impact:
 		AudioManager.play_sfx(skill.sound_impact)
@@ -221,7 +266,6 @@ func _execute_enemy_attack() -> void:
 		_run_state_based_actions()
 		return
 		
-	# 1. 🎯 Escolhe o herói alvo de forma direta por código (Pula qualquer UI)
 	var random_index: int = randi() % active_party_ids.size()
 	var target_hero_id: String = active_party_ids[random_index]
 	var target_hero = PlayerData.get_hero(target_hero_id)
@@ -230,64 +274,62 @@ func _execute_enemy_attack() -> void:
 		_finish_enemy_turn()
 		return
 
-	# 2. 🎲 Tabela de Decisão da IA (60% de chance de usar magia se tiver MP, 40% ataque físico)
-	var choice_roll = randf() # Gera um número aleatório entre 0.0 e 1.0
+	var choice_roll = randf()
 	var used_skill: SkillData = null
 	
-	# Se o monstro tiver skills na lista e o dado rolar para magia (menor que 0.60)
 	if not spawned_enemy.blueprint.skill_list.is_empty() and choice_roll < 0.60:
 		var random_skill_id = spawned_enemy.blueprint.skill_list.pick_random()
 		var candidate_skill = SkillsDatabase.get_skill(random_skill_id)
-		
-		# Checa se o monstro tem MP suficiente para pagar o rito da magia
 		if candidate_skill and spawned_enemy.current_mp >= candidate_skill.mp_cost:
 			used_skill = candidate_skill
 
-	# 3. 🎬 Execução da Ação Escolhida
-		# --- TRECHO DA IA DENTRO DE _execute_enemy_attack ---
+	# Configuração padrão de ataque
+	var damage_base = spawned_enemy.get_attack()
+	var element = "PHYSICAL"
+	var action_name = "Ataque Básico"
+
 	if used_skill != null:
 		spawned_enemy.modify_mp(-used_skill.mp_cost)
-		print("👹 [IA Combat] Jack Frost casts %s!" % used_skill.name)
-		# 🔊 Toca o som de conjuração do inimigo
+		damage_base = int(spawned_enemy.get_attack() * used_skill.damage_multiplier)
+		element = used_skill.element_type
+		action_name = used_skill.name
 		if used_skill.sound_cast:
 			AudioManager.play_sfx(used_skill.sound_cast)
-		# 📺 PISCAR SECO DO SEU LETREIRO (Sem precisar de script no nó!)
-		if ui_skill_announcer:
-			ui_skill_announcer.text = used_skill.name.to_upper() # Injeta "BUFU" ou "AGI"
-			
-			# Como o 'Panel' é o pai da Label, pegamos o pai e damos .show() nele!
-			var panel_node = ui_skill_announcer.get_parent() as Control
-			if panel_node: panel_node.show()
-			
-			await get_tree().create_timer(0.4).timeout # Espera rapidinho
-			
-			if panel_node: panel_node.hide() # Esconde o painel na hora do impacto do dano
-			
-		var damage_base = int(spawned_enemy.get_attack() * used_skill.damage_multiplier)
-		target_hero.take_damage_combat(damage_base, used_skill.element_type)
-		_trigger_damage_popup(target_hero_id, damage_base, used_skill.element_type)
-		# 🔊 Toca o som de impacto no herói
-		if used_skill.sound_impact:
-			AudioManager.play_sfx(used_skill.sound_impact)
-	else:
-		# Ataque físico básico comum se não escolher magia
-		var damage_dealt = spawned_enemy.get_attack()
-		target_hero.take_damage_combat(damage_dealt, "PHYSICAL")
-		_trigger_damage_popup(target_hero_id, damage_dealt, "PHYSICAL")
-	# ---------------------------------------------------
 
-	# 4. 🧼 Atualiza a interface móvel dos heróis e roda a SBA
+	# 📢 ANUNCIANTE VISUAL (Injeta o texto na caixa que já está visível)
+	if dialogue_label:
+		dialogue_label.text = "[center]O inimigo usa [b]%s[/b]![/center]" % action_name.to_upper()
+
+	await get_tree().create_timer(0.6).timeout # Tempo para o jogador ler o anúncio
+
+	# Executa o dano real no herói
+	if used_skill != null:
+		target_hero.take_damage_combat(damage_base, element)
+	else:
+		target_hero.take_damage_combat(damage_base, "PHYSICAL")
+		
+	_trigger_damage_popup(target_hero_id, damage_base, element)
+	
+	# 💥 JUICE VISUAL DE PRIMEIRA PESSOA:
+	_trigger_screen_flash(element)  # Clarão na tela inteira com a cor elemental
+	_trigger_screen_shake(15.0)     # Sacode o VisualArea independentemente
+
+	if used_skill != null and used_skill.sound_impact:
+		AudioManager.play_sfx(used_skill.sound_impact)
+
+	# Atualiza os números textuais da barra dos heróis
 	_update_hero_ui_display(target_hero_id)
 	
 	if target_hero.current_hp <= 0:
 		active_party_ids.remove_at(random_index)
+
+	# Aguarda o clarão e o tremor assentarem para o jogador ver o resultado
+	await get_tree().create_timer(1.0).timeout 
 	
 	_run_state_based_actions()
 	
 	if current_state == CombatState.ENEMY_TURN:
 		_finish_enemy_turn()
-
-# --- 🃏 STATE-BASED ACTIONS (ESTILO MTG) ---
 
 func _run_state_based_actions() -> void:
 	# Guarda o estado original para saber se mudou
@@ -310,6 +352,7 @@ func _run_state_based_actions() -> void:
 	current_state = original_state
 
 ## Executa o encerramento da cena de forma estrita e isolada
+## Executa o encerramento da cena de forma estrita e isolada
 func _on_combat_settled(victory: bool) -> void:
 	input_blocked = true
 	if ui_command_buttons: 
@@ -317,6 +360,11 @@ func _on_combat_settled(victory: bool) -> void:
 		
 	AudioManager.stop_bgm(0.4)
 	print("🏁 [SBA System] Combat strictly settled. Victory: ", victory)
+	
+	# 💀 SE FOR VITÓRIA: Roda a animação de morte do monstro antes de fechar a tela!
+	if victory and enemy_sprite:
+		await _animate_enemy_defeat()
+		
 	combat_finished.emit(victory)
 
 # --- SISTEMAS DE UI ---
@@ -386,3 +434,126 @@ func _trigger_damage_popup(target_id: String, damage_amount: int, _element_type:
 	tween.tween_property(popup, "global_position:y", popup.global_position.y - 40, 0.6)
 	tween.tween_property(popup, "modulate:a", 0.0, 0.6)
 	tween.chain().tween_callback(popup.queue_free)
+	
+# --- FUNÇÕES DE JUICE VISUAL (TWEEN DE CORES) ---
+
+# Faz o sprite do inimigo mudar de cor ao receber dano do jogador
+func _flash_enemy_color(element_type: String) -> void:
+	if not enemy_sprite: return
+	var target_color = ENEMY_FLASH_COLORS.get(element_type, Color(1.5, 1.5, 1.5, 1.0))
+	var tween = create_tween()
+	enemy_sprite.modulate = target_color
+	tween.tween_property(enemy_sprite, "modulate", Color.WHITE, 0.8).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+
+# Faz o Card de Status do Herói dar um Flash Intenso ao receber o golpe do monstro
+func _flash_hero_card_color(hero_id: String, element_type: String) -> void:
+	if not ui_heroes_container: return
+	var hero_card = ui_heroes_container.get_node_or_null(hero_id)
+	
+	if hero_card:
+		# 1. Resgata a cor original base do herói (SMT Style)
+		var hero_state = PlayerData.get_hero(hero_id)
+		var original_color = Color.WHITE
+		if hero_state and hero_state.blueprint and "theme_color" in hero_state.blueprint:
+			original_color = hero_state.blueprint.theme_color
+		
+		# 2. 🛡️ SE JÁ EXISTIR UM TWEEN RODANDO NESSE HERÓI, MATA ELE IMEDIATAMENTE!
+		if _active_hero_flash_tweens.has(hero_id) and _active_hero_flash_tweens[hero_id] is Tween:
+			if _active_hero_flash_tweens[hero_id].is_valid():
+				_active_hero_flash_tweens[hero_id].kill() # Interrompe o processo duplicado
+		
+		# 3. Cria o novo gerenciador de interpolação
+		var tween = create_tween()
+		_active_hero_flash_tweens[hero_id] = tween
+		
+		# 4. Define a cor estourada do elemento
+		var target_color = ELEMENT_COLORS.get(element_type, Color(1.5, 1.5, 1.5, 1.0))
+		
+		# ⚡ FRAME ZERO: Força o card a assumir o brilho elemental puro
+		hero_card.modulate = target_color
+		
+		# ⏳ 1 SEGUNDO: Esmaece de volta para a identidade visual exata do personagem
+		tween.tween_property(hero_card, "modulate", original_color, 1.0).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+		
+		# 🔒 GARANTIA: Remove a referência do dicionário quando a animação concluir com sucesso
+		tween.tween_callback(func():
+			hero_card.modulate = original_color
+			_active_hero_flash_tweens.erase(hero_id)
+		)
+
+## Alterna de forma segura entre a interface do jogador e o anúncio de texto
+func _alternar_interface_combate(mostrar_comandos: bool, hero_id: String = "") -> void:
+	if mostrar_comandos:
+		# Esconde a sobreposição para revelar os botões por baixo
+		if ui_dialogue_box: 
+			ui_dialogue_box.hide()
+		if ui_command_buttons: 
+			ui_command_buttons.show_commands_for(hero_id)
+	else:
+		# Mostra a caixa de diálogo por cima de tudo, cobrindo os botões e bloqueando cliques
+		if ui_dialogue_box: 
+			ui_dialogue_box.show()
+# Faz o monstro piscar intensamente na tela ao tomar um golpe do jogador
+
+# Faz a tela mobile inteira piscar com a cor do elemento do ataque recebido
+func _trigger_screen_flash(element_type: String) -> void:
+	if not screen_flash_effect: return
+	var flash_color = SCREEN_FLASH_COLORS.get(element_type, Color(1, 1, 1, 0.4))
+	
+	var tween = create_tween()
+	screen_flash_effect.color = flash_color
+	
+	var transparent_color = Color(flash_color.r, flash_color.g, flash_color.b, 0.0)
+	tween.tween_property(screen_flash_effect, "color", transparent_color, 0.8).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+
+# Sacode o container de arte visual em primeira pessoa (Monstro + Background)
+func _trigger_screen_shake(intensity: float) -> void:
+	if not visual_area_node: return
+	var original_pos = _visual_area_original_position
+	
+	var tween = create_tween().set_loops(4)
+	var offset_1 = Vector2(randf_range(-intensity, intensity), randf_range(-intensity, intensity))
+	var offset_2 = Vector2(randf_range(-intensity, intensity), randf_range(-intensity, intensity))
+	
+	tween.tween_property(visual_area_node, "position", original_pos + offset_1, 0.02)
+	tween.tween_property(visual_area_node, "position", original_pos + offset_2, 0.02)
+	tween.chain().tween_property(visual_area_node, "position", original_pos, 0.04)
+
+# Sacode especificamente o sprite do monstro quando ele recebe um golpe do jogador
+func _trigger_enemy_shake(intensity: float) -> void:
+	if not enemy_sprite: return
+	
+	# No Godot, para nós de Control dentro de containers, usamos 'position' ou 'offset' 
+	# Como o seu EnemySprite é um TextureRect, vamos mexer temporariamente no seu offset de posição
+	var original_pos = enemy_sprite.position
+	
+	var tween = create_tween().set_loops(4) # Repete o balanço rápido 4 vezes
+	var offset_1 = Vector2(randf_range(-intensity, intensity), randf_range(-intensity, intensity))
+	var offset_2 = Vector2(randf_range(-intensity, intensity), randf_range(-intensity, intensity))
+	
+	tween.tween_property(enemy_sprite, "position", original_pos + offset_1, 0.02)
+	tween.tween_property(enemy_sprite, "position", original_pos + offset_2, 0.02)
+	
+	# Garante que o monstro volta exatamente para o seu lugar de origem no layout
+	tween.chain().tween_property(enemy_sprite, "position", original_pos, 0.04)
+## Anima o monstro deslizando para baixo e virando uma silhueta preta ao morrer
+func _animate_enemy_defeat() -> void:
+	if not enemy_sprite: return
+	
+	# Cria um Tween paralelo (executa movimento e cor ao mesmo tempo)
+	var tween = create_tween().set_parallel(true)
+	
+	# 📐 Calcula o ponto final (a posição atual + a altura dele para sumir da tela)
+	var target_y = enemy_sprite.position.y + enemy_sprite.size.y + 50
+	
+	# ⏳ Configura as duas interpolações para durarem 0.6 segundos
+	# Move para baixo suavemente
+	tween.tween_property(enemy_sprite, "position:y", target_y, 0.6)\
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
+		
+	# Modula para o preto absoluto (Sombra)
+	tween.tween_property(enemy_sprite, "modulate", Color(0, 0, 0, 1.0), 0.6)\
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+		
+	# Aguarda o Tween terminar completamente antes de liberar a linha de execução
+	await tween.finished
