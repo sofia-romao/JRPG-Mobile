@@ -27,10 +27,18 @@ extends Resource
 @export var res_physical: float = 1.0
 
 @export_group("Skills")
-@export var skill_list: Array[String] = []
+@export var skills_by_level: Dictionary = {}
 
 # --- Calculation Functions ---
 func get_max_hp(level: int) -> int: return base_hp + (hp_per_level * (level - 1))
 func get_max_mp(level: int) -> int: return base_mp + (mp_per_level * (level - 1))
 func get_attack(level: int) -> int: return base_attack + (attack_per_level * (level - 1))
 func get_speed(level: int) -> int: return base_speed + (speed_per_level * (level - 1))
+func get_skills_up_to_level(current_level: int) -> Array[String]:
+	var unlocked_skills: Array[String] = []
+	
+	for level_key in skills_by_level.keys():
+		if int(level_key) <= current_level:
+			unlocked_skills.append_array(skills_by_level[level_key])
+			
+	return unlocked_skills

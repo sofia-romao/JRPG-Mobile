@@ -5,21 +5,22 @@ class_name MainController
 @export_category("Containers")
 @export var scene_container: Node
 
+# --- SCENE PATHS ---
+const MAIN_MENU_PATH = "res://scenes/main_menu.tscn"
+const HUB_NAVIGATOR_PATH = "res://scenes/main_hub_navigator.tscn" # 🆕 Sua tela intermediária
+const HERO_DETAILS_PATH = "res://scenes/hero_details_menu.tscn"   # 🆕 Seu alojamento de heróis
 const EXPLORATION_SCENE_PATH = "res://scenes/party_selection_menu.tscn"
 const DIALOGUE_SCENE_PATH = "res://scenes/dialogue_box.tscn"
 const COMBAT_SCENE_PATH = "res://scenes/combat_manager.tscn"
-const MAIN_MENU_PATH = "res://scenes/main_menu.tscn"
+
 var _current_active_scene: Node = null
 var _current_combat_data: CombatData = null
-# Ajuste o seu _ready() para abrir o menu em vez da exploração:
 func _ready() -> void:
 	if scene_container == null:
 		push_error("Main: The 'scene_container' node was not assigned in the Inspector!")
 		return
-	# O jogo agora inicia na tela de título de forma obrigatória!
+	# Game starts mandatorily at Title Screen
 	_transition_to_scene(MAIN_MENU_PATH)
-
-
 
 func _transition_to_scene(scene_path: String) -> Node:
 	if _current_active_scene != null:
@@ -39,16 +40,29 @@ func _transition_to_scene(scene_path: String) -> Node:
 	return new_instance
 
 func _connect_active_scene_signals(scene: Node) -> void:
-	# 1. Exploration Scene (Menu Unificado)
+	# Usando conexões diretas para métodos fixos em vez de Lambdas anônimas
+	if scene.has_signal("back_requested"):
+		scene.connect("back_requested", _on_back_to_hub_requested)
+		
+	if scene.has_signal("missions_requested"):
+		scene.connect("missions_requested", _on_missions_menu_requested)
+		
+	if scene.has_signal("barracks_requested"):
+		scene.connect("barracks_requested", _on_barracks_menu_requested)
+		
+	if scene.has_signal("continue_pressed"):
+		scene.connect("continue_pressed", _on_back_to_hub_requested)
+
+	# 2. Exploration Scene (Menu Unificado)
 	if scene.has_signal("mission_started"):
 		scene.connect("mission_started", _on_exploration_requested_dialogue)
 		
-	# 2. Dialogue Manager (Blindado por detecção de sinal)
+	# 3. Dialogue Manager
 	if scene.has_signal("game_event_triggered"):
 		scene.connect("dialogue_finished", _on_dialogue_finished)
 		scene.connect("game_event_triggered", _on_dialogue_triggered_event)
 		
-	# 3. Combat Manager (Blindado por detecção de sinal)
+	# 4. Combat Manager
 	if scene.has_signal("combat_finished"):
 		scene.connect("combat_finished", _on_combat_finished)
 		print("🔗 Main: Connected Combat signals successfully!")
@@ -62,16 +76,14 @@ func _on_exploration_requested_dialogue(event: GameEvent) -> void:
 
 func _on_dialogue_finished() -> void:
 	await get_tree().process_frame
-	# Se um combate acabou de ser armado, ignora o fechamento comum do diálogo!
 	if _current_combat_data != null: 
 		return
 		
-	_transition_to_scene(EXPLORATION_SCENE_PATH)
+	# Volta para o Hub Central em vez de empurrar direto para as missões
+	_transition_to_scene(HUB_NAVIGATOR_PATH)
 
 func _on_dialogue_triggered_event(event: GameEvent) -> void:
 	if event == null: return
-	
-	PlayerData.is_mission_in_progress = event.is_mission_in_progress
 	
 	match event.action_type:
 		GameEvent.ActionType.START_COMBAT:
@@ -85,11 +97,7 @@ func _on_dialogue_triggered_event(event: GameEvent) -> void:
 			var combat_arena = _transition_to_scene(COMBAT_SCENE_PATH)
 			if combat_arena and combat_arena.has_method("initialize_combat"):
 				combat_arena.initialize_combat(_current_combat_data)
-			
-		GameEvent.ActionType.COMPLETE_MISSION:
-			PlayerData.is_mission_in_progress = false
-			PlayerData.heal_active_party()
-			
+
 		GameEvent.ActionType.MODIFY_ATTRIBUTE:
 			if event.hero_id != "":
 				if event.hp_modifier != 0: 
@@ -111,13 +119,11 @@ func _on_combat_finished(victory: bool) -> void:
 	print("🏁 Main: Combat finished! Victory: ", victory)
 	
 	if victory:
-		# 1. Registra o ID da missão na lista de concluídas antes de salvar
 		if not PlayerData.active_mission_id.is_empty():
 			if not PlayerData.completed_missions.has(PlayerData.active_mission_id):
 				PlayerData.completed_missions.append(PlayerData.active_mission_id)
 				print("🏅 [Main] Mission added to completed list: ", PlayerData.active_mission_id)
 		
-		# 2. 💾 SALVAMENTO ATIVADO (Chama o seu Autoload de forma direta)
 		if SaveManager.has_method("save_game"):
 			SaveManager.save_game()
 		
@@ -127,11 +133,21 @@ func _on_combat_finished(victory: bool) -> void:
 			_on_dialogue_triggered_event(post_combat_event)
 			return
 			
-		if not PlayerData.is_mission_in_progress:
-			PlayerData.heal_active_party()
-			
+		PlayerData.heal_active_party()
 		_current_combat_data = null
-		_transition_to_scene(EXPLORATION_SCENE_PATH)
+		
+		# 🗺️ MUDANÇA AQUI: Redireciona o jogador ao Hub Navigator após a vitória!
+		_transition_to_scene(HUB_NAVIGATOR_PATH)
 	else:
 		print("☠️ Main: Player defeated! Game Over logic goes here.")
 		_current_combat_data = null
+# --- NAVIGATOR CHANNELS ---
+
+func _on_back_to_hub_requested() -> void:
+	_transition_to_scene(HUB_NAVIGATOR_PATH)
+
+func _on_missions_menu_requested() -> void:
+	_transition_to_scene(EXPLORATION_SCENE_PATH)
+
+func _on_barracks_menu_requested() -> void:
+	_transition_to_scene(HERO_DETAILS_PATH)

@@ -74,8 +74,9 @@ func _populate_skills_list() -> void:
 		return
 		
 	# 3. Varre os IDs de texto e gera os botões físicos no contêiner
-	for skill_id in hero_state.blueprint.skill_list:
+	for skill_id in hero_state.get_available_skills():
 		var skill_data: SkillData = SkillsDatabase.get_skill(skill_id)
+
 		
 		if skill_data:
 			var button = Button.new()

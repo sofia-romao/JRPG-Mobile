@@ -8,7 +8,6 @@ func save_game() -> void:
 	var save_res = SaveGameData.new()
 	
 	# Passa as variáveis simples do Autoload para o Resource
-	save_res.is_mission_in_progress = PlayerData.is_mission_in_progress
 	save_res.active_mission_id = PlayerData.active_mission_id
 	save_res.completed_missions = PlayerData.completed_missions
 	save_res.active_party = PlayerData.active_party
@@ -41,7 +40,6 @@ func load_game() -> bool:
 		return false
 		
 	# Devolve as variáveis do Resource de volta para o Autoload global
-	PlayerData.is_mission_in_progress = save_res.is_mission_in_progress
 	PlayerData.active_mission_id = save_res.active_mission_id
 	PlayerData.completed_missions = save_res.completed_missions
 	PlayerData.active_party = save_res.active_party

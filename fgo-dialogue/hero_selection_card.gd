@@ -15,7 +15,7 @@ var is_visually_selected: bool = false
 func _pressed() -> void:
 	card_clicked.emit(hero_id)
 
-func initialize_card(id: String, hero_state: HeroState, is_in_party: bool, is_locked: bool) -> void:
+func initialize_card(id: String, hero_state: HeroState, is_in_party: bool) -> void:
 	hero_id = id
 	
 	if hero_state.blueprint:
@@ -26,9 +26,6 @@ func initialize_card(id: String, hero_state: HeroState, is_in_party: bool, is_lo
 	if avatar_texture and hero_state.blueprint and hero_state.blueprint.avatar_icon:
 		avatar_texture.texture = hero_state.blueprint.avatar_icon
 		
-	if lock_overlay:
-		lock_overlay.visible = is_locked
-	disabled = is_locked
 	
 	# Inicializa o estado visual sem animação abrupta na primeira renderização
 	is_visually_selected = is_in_party

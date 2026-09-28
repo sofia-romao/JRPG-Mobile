@@ -40,7 +40,8 @@ func initialize_combat(data: CombatData) -> void:
 	
 	if background_texture and combat_data.background:
 		background_texture.texture = combat_data.background
-	
+	if combat_data.bgm:
+			AudioManager.play_bgm(combat_data.bgm)
 	spawned_enemy = EnemyState.new()
 	spawned_enemy.initialize(combat_data.enemy)
 	enemy_sprite.texture = spawned_enemy.blueprint.combat_sprite
@@ -152,12 +153,17 @@ func execute_hero_skill(skill: SkillData) -> void:
 		print("🔮 [Combat] %s paid %d MP to cast %s." % [hero_state.blueprint.character_name, skill.mp_cost, skill.name])
 		_update_hero_ui_display(hero_id) # Atualiza o status na tela
 	# ----------------------------------------------------
+	# 🔊 1. Toca o som de conjuração se ele existir
+	if skill.sound_cast:
+		AudioManager.play_sfx(skill.sound_cast)
 	
 	# Executa o rito de dano normal contra o monstro
 	var damage_base: int = int(hero_state.get_attack() * skill.damage_multiplier)
 	spawned_enemy.receive_combat_damage(damage_base, skill.element_type)
 	_trigger_enemy_damage_popup(damage_base, skill.element_type)
-	
+	# 🔊 2. Toca o som de impacto no momento exato do popup de dano
+	if skill.sound_impact:
+		AudioManager.play_sfx(skill.sound_impact)
 	_run_state_based_actions()
 	
 	# CORRIGIDO: Removida a duplicidade do '_finish_current_hero_turn()' que estava duplicando turnos fantasmas [9]
@@ -182,7 +188,9 @@ func execute_hero_single_heal(target_hero: HeroState, skill: SkillData) -> void:
 	# Dispara o pop-up de cura (usando a mesma cena monocromática com texto adaptado)
 	_trigger_damage_popup(target_hero.blueprint.id, heal_amount, "HEAL") 
 	_update_hero_ui_display(target_hero.blueprint.id)
-	
+	# 🔊 2. Toca o som de impacto no momento exato do popup de dano
+	if skill.sound_impact:
+		AudioManager.play_sfx(skill.sound_impact)
 	_finish_current_hero_turn()
 
 ## Executa a cura em toda a equipe ativa de uma vez só [8]
@@ -202,6 +210,9 @@ func execute_hero_party_heal(skill: SkillData) -> void:
 			_trigger_damage_popup(hero_id, heal_amount, "HEAL")
 			_update_hero_ui_display(hero_id)
 			
+	# 🔊 2. Toca o som de impacto no momento exato do popup de dano
+	if skill.sound_impact:
+		AudioManager.play_sfx(skill.sound_impact)
 	print("💚 [Combat] %s healed the entire party for %d HP." % [caster_state.blueprint.character_name, heal_amount])
 	_finish_current_hero_turn()
 
@@ -237,7 +248,9 @@ func _execute_enemy_attack() -> void:
 	if used_skill != null:
 		spawned_enemy.modify_mp(-used_skill.mp_cost)
 		print("👹 [IA Combat] Jack Frost casts %s!" % used_skill.name)
-		
+		# 🔊 Toca o som de conjuração do inimigo
+		if used_skill.sound_cast:
+			AudioManager.play_sfx(used_skill.sound_cast)
 		# 📺 PISCAR SECO DO SEU LETREIRO (Sem precisar de script no nó!)
 		if ui_skill_announcer:
 			ui_skill_announcer.text = used_skill.name.to_upper() # Injeta "BUFU" ou "AGI"
@@ -253,6 +266,9 @@ func _execute_enemy_attack() -> void:
 		var damage_base = int(spawned_enemy.get_attack() * used_skill.damage_multiplier)
 		target_hero.take_damage_combat(damage_base, used_skill.element_type)
 		_trigger_damage_popup(target_hero_id, damage_base, used_skill.element_type)
+		# 🔊 Toca o som de impacto no herói
+		if used_skill.sound_impact:
+			AudioManager.play_sfx(used_skill.sound_impact)
 	else:
 		# Ataque físico básico comum se não escolher magia
 		var damage_dealt = spawned_enemy.get_attack()
@@ -299,6 +315,7 @@ func _on_combat_settled(victory: bool) -> void:
 	if ui_command_buttons: 
 		ui_command_buttons.hide_commands()
 		
+	AudioManager.stop_bgm(0.4)
 	print("🏁 [SBA System] Combat strictly settled. Victory: ", victory)
 	combat_finished.emit(victory)
 

@@ -6,62 +6,51 @@ enum MenuTab { HEROES, MISSIONS }
 
 @export_category("Scene Configuration")
 @export var hero_card_prefab: PackedScene 
-@export var mission_card_prefab: PackedScene # Seu novo prefab de cartão de missão
+@export var mission_card_prefab: PackedScene 
 
 @export_category("UI Nodes")
 @export var grid_container: GridContainer
-@export var locked_warning_label: Label
-@export var action_button: Button # Botão inferior (ex: "Start Mission" ou "Confirm Party")
+@export var action_button: Button 
 @export var tab_heroes_button: Button
 @export var tab_missions_button: Button
-var current_tab: MenuTab = MenuTab.HEROES
-var available_missions: Dictionary = {} # Armazena as missões carregadas do disco
 
+var current_tab: MenuTab = MenuTab.HEROES
+var available_missions: Dictionary = {} 
+@export var mission_resources: Array[MissionData] = []
 func _ready() -> void:
 	_load_missions_from_folder()
 	
 	if tab_heroes_button:
-		tab_heroes_button.pressed.connect(func(): switch_tab(0)) # 0 = Heroes
+		tab_heroes_button.pressed.connect(func(): switch_tab(0)) 
 		
 	if tab_missions_button:
-		tab_missions_button.pressed.connect(func(): switch_tab(1)) # 1 = Missions
+		tab_missions_button.pressed.connect(func(): switch_tab(1)) 
 	
-	# Conexão do botão de ação contextual
 	if action_button and not action_button.pressed.is_connected(_on_action_button_pressed):
 		action_button.pressed.connect(_on_action_button_pressed)
 		
-	# --- 📑 MUDANÇA DE INICIALIZAÇÃO AQUI ---
-	# Força o menu a iniciar exibindo a lista de missões logo no primeiro frame!
+	# Força o menu a iniciar exibindo a lista de missões logo no primeiro frame
 	current_tab = MenuTab.MISSIONS
-	# ----------------------------------------
-	
 	update_menu_ui()
 
 ## Função principal que reconstrói a lista dependendo da aba ativa
 func update_menu_ui() -> void:
+	# Limpa os cartões antigos da tela
 	for child in grid_container.get_children():
 		child.queue_free()
 		
-	var is_locked: bool = PlayerData.is_mission_in_progress
-	
-	if locked_warning_label:
-		locked_warning_label.visible = is_locked
-		locked_warning_label.text = "⚠️ MISSION IN PROGRESS - CONTROLS LOCKED"
-	
+	# Direciona para a renderização correta baseado na aba atual
 	match current_tab:
 		MenuTab.HEROES:
-			_render_heroes_tab(is_locked)
+			_render_heroes_tab()
 		MenuTab.MISSIONS:
-			_render_missions_tab(is_locked)
+			_render_missions_tab()
 
 # --- RENDERS DE ABA ---
 
-func _render_heroes_tab(is_locked: bool) -> void:
+func _render_heroes_tab() -> void:
 	if action_button:
-		if is_locked:
-			action_button.text = "Party Locked"
-			action_button.disabled = true
-		elif PlayerData.selected_mission_data != null:
+		if PlayerData.selected_mission_data != null:
 			# Se veio da aba de missões com um contrato, vira o botão de Deploy!
 			action_button.text = "[ DEPLOY TEAM ]"
 			# TRAVA: Fica desativado se o jogador tentar entrar na luta sem heróis selecionados!
@@ -79,23 +68,17 @@ func _render_heroes_tab(is_locked: bool) -> void:
 		grid_container.add_child(new_card)
 		
 		if new_card.has_method("initialize_card"):
-			new_card.initialize_card(hero_id, hero_state, is_in_party, is_locked)
+			# Removido o argumento is_locked daqui
+			new_card.initialize_card(hero_id, hero_state, is_in_party)
 			
 		if new_card.has_signal("card_clicked"):
 			new_card.card_clicked.connect(_on_hero_card_selected)
 
-func _render_missions_tab(is_locked: bool) -> void:
+func _render_missions_tab() -> void:
 	if action_button:
-		if is_locked:
-			action_button.text = "Continue Mission"
-			action_button.disabled = false
-		else:
-			# Na aba de missões o botão inferior serve apenas como um aviso visual de instrução
-			action_button.text = "Click a Mission Card Above"
-			action_button.disabled = true
-
-	if is_locked:
-		return
+		# Na aba de missões o botão inferior serve apenas como uma instrução
+		action_button.text = "Select Mission"
+		action_button.disabled = true
 
 	for mission_id in available_missions:
 		var mission: MissionData = available_missions[mission_id]
@@ -119,8 +102,6 @@ func _render_missions_tab(is_locked: bool) -> void:
 # --- SINAIS DE SELEÇÃO DE CARTÕES ---
 
 func _on_hero_card_selected(hero_id: String) -> void:
-	if PlayerData.is_mission_in_progress: return
-		
 	if PlayerData.active_party.has(hero_id):
 		PlayerData.active_party.erase(hero_id)
 	else:
@@ -130,37 +111,25 @@ func _on_hero_card_selected(hero_id: String) -> void:
 	update_menu_ui()
 
 func _on_mission_card_selected(mission: MissionData) -> void:
-	if PlayerData.is_mission_in_progress: return
-	
-	# Seleciona ou desmarca a missão na memória
 	if PlayerData.selected_mission_data == mission:
 		PlayerData.selected_mission_data = null
 	else:
 		PlayerData.selected_mission_data = mission
 		print("🎯 Menu: Mission selected: ", mission.title, ". Redirecting to Party Setup...")
-		switch_tab(0) # ◄ JOGA O JOGADOR DIRETO PARA A SELEÇÃO DE HERÓIS!
-		return # Interrompe aqui para o switch_tab atualizar a tela sozinho
+		switch_tab(0) # Joga o jogador direto para a seleção de heróis
+		return 
 		
 	update_menu_ui()
 
 # --- INPUT E ALTERNÂNCIA DE ABAS ---
 
-## Chame esta função via botões de Aba (Ex: clicou no botão "Missions" da UI)
 func switch_tab(tab_index: int) -> void:
 	print("🔄 [MENU] switch_tab foi chamada! Mudando para a aba: ", tab_index)
 	current_tab = tab_index as MenuTab
 	update_menu_ui()
 
-## Comportamento do botão de confirmação inferior
 func _on_action_button_pressed() -> void:
-	# Se a missão já está em andamento (retornando da dungeon)
-	if PlayerData.is_mission_in_progress:
-		print("🚀 Menu: Returning to active mission zone.")
-		return
-		
-	# Caso Geral: O jogador montou a party na aba de heróis e clicou em [ DEPLOY TEAM ]
 	if PlayerData.selected_mission_data != null:
-		# PROTEÇÃO BRUTA: Impede o avanço se a lista de heróis ativos estiver vazia na memória
 		if PlayerData.active_party.is_empty():
 			print("❌ Menu: Deploy aborted! Active party is empty.")
 			return
@@ -168,9 +137,7 @@ func _on_action_button_pressed() -> void:
 		var mission = PlayerData.selected_mission_data
 		PlayerData.active_mission_id = mission.id
 		
-		# Cura e enche o MP/HP da equipe ativa antes de entrar na arena
 		PlayerData.heal_active_party()
-		
 		print("🚀 Menu: Team deployed successfully! Starting mission: ", mission.title)
 		
 		var main = get_tree().root.get_node_or_null("MainController")
@@ -182,19 +149,16 @@ func _on_action_button_pressed() -> void:
 # --- CARREGADOR AUTOMÁTICO DE RECURSOS ---
 
 func _load_missions_from_folder() -> void:
-	var folder_path = "res://resources/missions/"
-	var dir = DirAccess.open(folder_path)
+	available_missions.clear()
 	
-	if dir:
-		dir.list_dir_begin()
-		var file_name = dir.get_next()
-		
-		while file_name != "":
-			if not dir.current_is_dir() and file_name.ends_with(".tres"):
-				var mission = load(folder_path + file_name) as MissionData
-				if mission:
-					available_missions[mission.id] = mission
-			file_name = dir.get_next()
-		dir.list_dir_end()
-	else:
-		print("⚠️ Menu: Pasta resources/missions/ não encontrada.")
+	# Na Web, lemos direto do Array que você preencheu no Inspetor!
+	for mission in mission_resources:
+		if mission and not mission.id.is_empty():
+			available_missions[mission.id] = mission
+			
+	print("📦 [Web Load] Loaded ", available_missions.size(), " missions securely.")
+	
+func _on_back_button_pressed() -> void:
+	var main = get_tree().root.get_node_or_null("MainController")
+	if main and main.has_method("_transition_to_scene"):
+		main._transition_to_scene(main.HUB_NAVIGATOR_PATH)

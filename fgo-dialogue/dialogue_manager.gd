@@ -101,7 +101,7 @@ func _generate_choice_buttons() -> void:
 	for choice in _current_story.choices:
 		var btn = Button.new()
 		btn.text = choice.choice_text
-		btn.custom_minimum_size = Vector2(250, 45)
+		btn.custom_minimum_size = Vector2(250, 80)
 		btn.pressed.connect(func(): _on_choice_selected(choice))
 		choices_container.add_child(btn)
 

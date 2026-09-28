@@ -18,7 +18,6 @@ enum ActionType {
 
 @export_category("Action Trigger")
 @export var action_type: ActionType = ActionType.NONE
-@export var is_mission_in_progress: bool = false
 
 @export_group("Target Modification")
 @export var hero_id: String = ""                 

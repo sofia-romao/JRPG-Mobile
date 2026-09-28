@@ -3,7 +3,6 @@ extends Node
 @export var available_heroes: Array[HeroData] = []
 const MAX_PARTY_SIZE : int = 3
 
-var is_mission_in_progress: bool = false
 var active_mission_id: String = ""
 var completed_missions: Array[String] = [] # Salva os IDs das missões finalizadas
 var selected_mission_data: MissionData = null # Missão clicada no menu atualmente

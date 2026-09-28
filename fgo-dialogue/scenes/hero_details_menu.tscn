@@ -1,0 +1,164 @@
+[gd_scene format=3 uid="uid://be1i266mq4kjv"]
+
+[ext_resource type="Script" uid="uid://dosc5u7emydkg" path="res://hero_details_menu.gd" id="1_247ca"]
+[ext_resource type="PackedScene" uid="uid://cavqlxggfvlb1" path="res://scenes/hero_selection_card.tscn" id="2_tnmvm"]
+
+[node name="HeroDetailsMenu" type="Control" unique_id=437630011 node_paths=PackedStringArray("selection_panel", "details_panel", "hero_list_container", "avatar_texture", "name_label", "level_label", "stats_label", "skills_list_container", "dialogue_label", "chat_button")]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+script = ExtResource("1_247ca")
+hero_card_prefab = ExtResource("2_tnmvm")
+selection_panel = NodePath("SelectionPanel")
+details_panel = NodePath("DetailsPanel")
+hero_list_container = NodePath("SelectionPanel/MarginContainer/ScrollContainer/HeroListContainer")
+avatar_texture = NodePath("DetailsPanel/MainLayout/TopSection/AvatarTexture")
+name_label = NodePath("DetailsPanel/MainLayout/MarginContainer/MiddleSection/StatsScroll/StatsVertical/NameLabel")
+level_label = NodePath("DetailsPanel/MainLayout/MarginContainer/MiddleSection/StatsScroll/StatsVertical/LevelLabel")
+stats_label = NodePath("DetailsPanel/MainLayout/MarginContainer/MiddleSection/StatsScroll/StatsVertical/StatsLabel")
+skills_list_container = NodePath("DetailsPanel/MainLayout/MarginContainer/MiddleSection/SkillsScroll/SkillsListContainer")
+dialogue_label = NodePath("DetailsPanel/MainLayout/DialogueSextion/RichTextLabel")
+chat_button = NodePath("DetailsPanel/MainLayout/TopSection/ChatButton")
+
+[node name="Background" type="TextureRect" parent="." unique_id=1326176473]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0
+mouse_filter = 2
+
+[node name="SelectionPanel" type="Control" parent="." unique_id=213208547]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="MarginContainer" type="MarginContainer" parent="SelectionPanel" unique_id=748559814]
+custom_minimum_size = Vector2(540, 540)
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_bottom = -420.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="ScrollContainer" type="ScrollContainer" parent="SelectionPanel/MarginContainer" unique_id=629635967]
+custom_minimum_size = Vector2(540, 540)
+layout_mode = 2
+
+[node name="HeroListContainer" type="VBoxContainer" parent="SelectionPanel/MarginContainer/ScrollContainer" unique_id=230490840]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 15
+
+[node name="DetailsPanel" type="Control" parent="." unique_id=981295035]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="MainLayout" type="VBoxContainer" parent="DetailsPanel" unique_id=1092204171]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="TopSection" type="Control" parent="DetailsPanel/MainLayout" unique_id=192490917]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="AvatarTexture" type="TextureRect" parent="DetailsPanel/MainLayout/TopSection" unique_id=841215456]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_bottom = 263.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="ChatButton" type="Button" parent="DetailsPanel/MainLayout/TopSection" unique_id=488188760]
+layout_mode = 0
+offset_left = 383.8636
+offset_top = 575.21814
+offset_right = 536.8636
+offset_bottom = 694.21814
+text = "TALK"
+
+[node name="MarginContainer" type="MarginContainer" parent="DetailsPanel/MainLayout" unique_id=214171127]
+custom_minimum_size = Vector2(540, 237)
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 20
+
+[node name="MiddleSection" type="HBoxContainer" parent="DetailsPanel/MainLayout/MarginContainer" unique_id=566474925]
+layout_mode = 2
+
+[node name="StatsScroll" type="ScrollContainer" parent="DetailsPanel/MainLayout/MarginContainer/MiddleSection" unique_id=1225677394]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="StatsVertical" type="VBoxContainer" parent="DetailsPanel/MainLayout/MarginContainer/MiddleSection/StatsScroll" unique_id=478800259]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="NameLabel" type="Label" parent="DetailsPanel/MainLayout/MarginContainer/MiddleSection/StatsScroll/StatsVertical" unique_id=463046668]
+layout_mode = 2
+
+[node name="LevelLabel" type="Label" parent="DetailsPanel/MainLayout/MarginContainer/MiddleSection/StatsScroll/StatsVertical" unique_id=143106974]
+layout_mode = 2
+
+[node name="StatsLabel" type="Label" parent="DetailsPanel/MainLayout/MarginContainer/MiddleSection/StatsScroll/StatsVertical" unique_id=2012446347]
+layout_mode = 2
+
+[node name="SkillsScroll" type="ScrollContainer" parent="DetailsPanel/MainLayout/MarginContainer/MiddleSection" unique_id=1314775681]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="SkillsListContainer" type="VBoxContainer" parent="DetailsPanel/MainLayout/MarginContainer/MiddleSection/SkillsScroll" unique_id=766845941]
+layout_mode = 2
+
+[node name="Spacer" type="Control" parent="DetailsPanel/MainLayout" unique_id=1608013770]
+layout_mode = 2
+size_flags_vertical = 3
+mouse_filter = 2
+
+[node name="DialogueSextion" type="MarginContainer" parent="DetailsPanel/MainLayout" unique_id=1053016332]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 20
+
+[node name="Panel" type="Panel" parent="DetailsPanel/MainLayout/DialogueSextion" unique_id=857827937]
+layout_mode = 2
+
+[node name="RichTextLabel" type="RichTextLabel" parent="DetailsPanel/MainLayout/DialogueSextion" unique_id=1014176294]
+layout_mode = 2
+
+[node name="BackButton" type="Button" parent="." unique_id=177455223]
+layout_mode = 0
+offset_left = 5.3936768
+offset_top = 578.4392
+offset_right = 158.39368
+offset_bottom = 697.4392
+text = "BACK"
+
+[connection signal="pressed" from="BackButton" to="." method="_on_back_button_pressed"]

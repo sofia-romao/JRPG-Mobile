@@ -50,7 +50,11 @@ func get_attack() -> int:
 func get_speed() -> int:
 	if not blueprint: return 5
 	return blueprint.get_speed(get_level())
-
+	
+func get_available_skills() -> Array[String]:
+	if not blueprint: 
+		return []
+	return blueprint.get_skills_up_to_level(get_level())
 ## Full recovery (used on mission clears or full heals)
 func full_heal() -> void:
 	current_hp = get_max_hp()

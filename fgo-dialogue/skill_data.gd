@@ -15,3 +15,7 @@ enum TargetType { ENEMY, ALLY_SINGLE, ALLY_ALL }
 
 # O multiplicador de dano/cura (ex: 1.5 significa 150% do ataque/magia)
 @export var damage_multiplier: float = 1.0
+
+@export_group("Audio Elements")
+@export var sound_cast: AudioStream   # Som tocado na conjuração
+@export var sound_impact: AudioStream # Som tocado no impacto do dano/cura
