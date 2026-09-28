@@ -3,28 +3,29 @@ extends Node
 
 var skills: Dictionary = {}
 
-func _ready() -> void:
-	_load_skills_from_folder()
+# 🔒 Escreva aqui as strings com os IDs das habilidades que os inimigos têm no EnemyData.
+# O caminho aponta para o arquivo .tres original (o Godot cuida do resto na Web!)
+const SKILL_PATHS: Array[String] = [
+	"res://resources/skills/agi.tres",
+	"res://resources/skills/bufu.tres",
+	"res://resources/skills/dia.tres",
+	"res://resources/skills/rush.tres"
+]
 
-func _load_skills_from_folder() -> void:
-	var folder_path = "res://resources/skills/"
-	var dir = DirAccess.open(folder_path)
+func _ready() -> void:
+	_load_skills_statically()
+
+func _load_skills_statically() -> void:
+	skills.clear()
 	
-	if dir:
-		dir.list_dir_begin()
-		var file_name = dir.get_next()
-		
-		while file_name != "":
-			if not dir.current_is_dir() and file_name.ends_with(".tres"):
-				var full_path = folder_path + file_name
-				var data = load(full_path) as SkillData
-				if data:
-					skills[data.id] = data
-					print("🔮 [SkillDatabase] Skill loaded: %s (%s)" % [data.name, data.id])
-			file_name = dir.get_next()
-		dir.list_dir_end()
-	else:
-		print("⚠️ [SkillDatabase] Skills folder not found or empty.")
+	for path in SKILL_PATHS:
+		# O load direto do Godot resolve os remapeamentos internos na Web de forma nativa!
+		var data = load(path) as SkillData
+		if data:
+			skills[data.id] = data
+			print("🔮 [SkillDatabase] Skill loaded statically: %s (%s)" % [data.name, data.id])
+			
+	print("📦 [SkillDatabase] Total skills loaded securely: ", skills.size())
 
 func get_skill(skill_id: String) -> SkillData:
 	return skills.get(skill_id, null)
