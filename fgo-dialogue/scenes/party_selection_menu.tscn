@@ -5,6 +5,7 @@
 [ext_resource type="PackedScene" uid="uid://dbtxuhojfjj8q" path="res://scenes/mission_card.tscn" id="3_wpd0i"]
 [ext_resource type="Script" uid="uid://6ulkprshou6x" path="res://mission_data.gd" id="4_arsrb"]
 [ext_resource type="Resource" uid="uid://byri7tqs2rp5l" path="res://resources/missions/jack_frost_test_mission.tres" id="5_ucnai"]
+[ext_resource type="Resource" uid="uid://b58oxcytcjh3x" path="res://resources/missions/barghest_test_mission.tres" id="6_ucnai"]
 
 [node name="PartySelectionMenu" type="Control" unique_id=928408070 node_paths=PackedStringArray("grid_container", "action_button", "tab_heroes_button", "tab_missions_button")]
 custom_minimum_size = Vector2(400, 500)
@@ -21,7 +22,7 @@ grid_container = NodePath("ScrollContainer/HeroGrid")
 action_button = NodePath("ActionButton")
 tab_heroes_button = NodePath("HBoxContainer/TabHeroesButton")
 tab_missions_button = NodePath("HBoxContainer/TabMissionsButton")
-mission_resources = Array[ExtResource("4_arsrb")]([ExtResource("5_ucnai")])
+mission_resources = Array[ExtResource("4_arsrb")]([ExtResource("5_ucnai"), ExtResource("6_ucnai")])
 
 [node name="Control" type="Control" parent="." unique_id=603948743]
 custom_minimum_size = Vector2(0, 100)

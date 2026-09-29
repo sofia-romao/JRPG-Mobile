@@ -2,12 +2,15 @@ class_name HeroState
 extends Resource
 
 @export var blueprint: HeroData
-@export var current_exp: int = 0
 @export var current_hp: int = 0
-@export var current_mp: int = 0 # 🔮 Agora oficializado!
+@export var current_mp: int = 0 
+
+# Dicionário de status ativos. Ex: {"POISON": 3, "SHIELD": 1} (onde o valor é a duração em turnos)
+var active_status: Dictionary = {}
 
 signal changed_hp(new_hp: int, max_hp: int, change: int)
-signal changed_mp(new_mp: int, max_mp: int, change: int) # 🔮 UI de batalha vai escutar este sinal
+signal changed_mp(new_mp: int, max_mp: int, change: int)
+signal status_updated() # Avisa a UI mobile que os ícones de buffs/debuffs mudaram
 
 ## Updates HP, clamping to bounds and emitting signal for Mobile UI
 func modify_hp(amount: int) -> void:
@@ -27,46 +30,61 @@ func modify_mp(amount: int) -> void:
 	if change != 0:
 		changed_mp.emit(current_mp, get_max_mp(), change)
 
-## Calculates current level based on EXP
-func get_level() -> int:
-	return int(current_exp / 1000) + 1
+# --- Gerenciamento de Status (Novo Sistema) ---
 
-## Gets Max HP dynamically from the blueprint scaling
+func apply_status(status_id: String, duration: int) -> void:
+	active_status[status_id] = duration
+	status_updated.emit()
+
+func has_status(status_id: String) -> bool:
+	return active_status.has(status_id)
+
+## Deve ser chamado pelo Combat Manager no início/fim do turno do personagem
+func tick_status() -> void:
+	var to_remove: Array = []
+	for status in active_status.keys():
+		active_status[status] -= 1
+		if active_status[status] <= 0:
+			to_remove.append(status)
+			
+	for status in to_remove:
+		active_status.erase(status)
+		
+	if to_remove.size() > 0:
+		status_updated.emit()
+
+func clear_all_status() -> void:
+	active_status.clear()
+	status_updated.emit()
+
+# --- Getters simplificados do Blueprint Fixo ---
+
 func get_max_hp() -> int:
-	if not blueprint: return 100
-	return blueprint.get_max_hp(get_level())
+	return blueprint.max_hp if blueprint else 100
 
-## Gets Max MP dynamically from the blueprint scaling
 func get_max_mp() -> int:
-	if not blueprint: return 20
-	return blueprint.get_max_mp(get_level())
+	return blueprint.max_mp if blueprint else 20
 
-## Gets Attack dynamically from the blueprint scaling
 func get_attack() -> int:
-	if not blueprint: return 10
-	return blueprint.get_attack(get_level())
+	return blueprint.attack if blueprint else 10
 
-## Gets Speed dynamically from the blueprint scaling
 func get_speed() -> int:
-	if not blueprint: return 5
-	return blueprint.get_speed(get_level())
+	return blueprint.speed if blueprint else 5
 	
 func get_available_skills() -> Array[String]:
-	if not blueprint: 
-		return []
-	return blueprint.get_skills_up_to_level(get_level())
-## Full recovery (used on mission clears or full heals)
+	return blueprint.skills if blueprint else []
+
+## Full recovery
 func full_heal() -> void:
 	current_hp = get_max_hp()
-	current_mp = get_max_mp() # Restaura o MP totalmente também!
+	current_mp = get_max_mp()
+	clear_all_status()
 
-## Applies combat damage calculating elemental resistances from HeroData.
-## Returns TRUE if the enemy hit a weakness (multiplier > 1.0).
+## Retorna TRUE se o inimigo hit a weakness (multiplier > 1.0).
 func take_damage_combat(damage_base: int, element_type: String) -> bool:
 	if not blueprint: return false
 	
 	var multiplier: float = 1.0
-	
 	match element_type:
 		"FIRE": multiplier = blueprint.res_fire
 		"ICE": multiplier = blueprint.res_ice

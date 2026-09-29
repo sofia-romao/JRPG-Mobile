@@ -1,0 +1,39 @@
+[gd_resource type="Resource" script_class="MissionData" format=3 uid="uid://b58oxcytcjh3x"]
+
+[ext_resource type="Script" uid="uid://6ulkprshou6x" path="res://mission_data.gd" id="1_p8kcs"]
+[ext_resource type="Script" uid="uid://dch8afiewdldy" path="res://story_choice.gd" id="2_fnc3l"]
+[ext_resource type="Resource" uid="uid://bq3ypfvrj8c8c" path="res://resources/combat_encounter/barghest_boss_fight.tres" id="3_slj0v"]
+[ext_resource type="Script" uid="uid://ddx8q47y5l7w7" path="res://story_line.gd" id="4_flw8r"]
+[ext_resource type="Script" uid="uid://nld3nwsy6uln" path="res://game_event.gd" id="5_fa324"]
+
+[sub_resource type="Resource" id="Resource_m6vig"]
+script = ExtResource("5_fa324")
+action_type = 1
+combat_data = ExtResource("3_slj0v")
+metadata/_custom_type_script = "uid://nld3nwsy6uln"
+
+[sub_resource type="Resource" id="Resource_n13rq"]
+script = ExtResource("2_fnc3l")
+choice_text = "ENGAGE"
+trigger_game_event = SubResource("Resource_m6vig")
+metadata/_custom_type_script = "uid://dch8afiewdldy"
+
+[sub_resource type="Resource" id="Resource_bv72m"]
+script = ExtResource("4_flw8r")
+character_name = "Altria"
+text = "Engaging the enemy!"
+metadata/_custom_type_script = "uid://ddx8q47y5l7w7"
+
+[sub_resource type="Resource" id="Resource_0mgq3"]
+script = ExtResource("5_fa324")
+dialogue_lines = Array[ExtResource("4_flw8r")]([SubResource("Resource_bv72m")])
+choices = Array[ExtResource("2_fnc3l")]([SubResource("Resource_n13rq")])
+metadata/_custom_type_script = "uid://nld3nwsy6uln"
+
+[resource]
+script = ExtResource("1_p8kcs")
+id = "barghest_mission"
+title = "Defeat Barghest"
+description = "Barghest hates Altria! Defeat her!"
+start_event = SubResource("Resource_0mgq3")
+metadata/_custom_type_script = "uid://6ulkprshou6x"

@@ -8,4 +8,5 @@ extends Resource
 @export var active_party: Array[String] = []
 
 # Guardamos um dicionário simples de ID : Atributos dinâmicos dos heróis
+# Agora focado estritamente em: {"current_hp": int, "current_mp": int}
 @export var hero_stats: Dictionary = {}

@@ -7,7 +7,8 @@ extends Resource
 @export var background: Texture2D
 
 @export_category("Desafio")
-@export var enemy: EnemyData
+# 🚨 ATUALIZADO: Substitui o EnemyData isolado pela estrutura completa de fases e transformações!
+@export var boss_structure: BossStructureData
 
 @export_category("Recompensas")
 # Se quiser customizar um evento complexo pós-luta (ex: fechar missão + dar XP)

@@ -1,0 +1,8 @@
+[gd_resource type="Resource" script_class="TriggerPartyHero" format=3 uid="uid://cy7ue2rfomvtm"]
+
+[ext_resource type="Script" uid="uid://dsny5gxt3jhph" path="res://trigger_party_hero.gd" id="1_i86nk"]
+
+[resource]
+script = ExtResource("1_i86nk")
+hero_id_required = "altria"
+metadata/_custom_type_script = "uid://dsny5gxt3jhph"

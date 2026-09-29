@@ -1,57 +1,38 @@
 extends Node
-# 💾 PLAYERDATA - Fonte de Verdade Global do Progresso do Jogador
+# 💾 PLAYERDATA - Fonte de Verdade Global do Progresso do Jogador (Modo Boss Rush)
+
 @export var available_heroes: Array[HeroData] = []
 const MAX_PARTY_SIZE : int = 3
 const INITIAL_HERO_IDS: Array[String] = ["altria"]
 
 var active_mission_id: String = ""
-var completed_missions: Array[String] = [] # Salva os IDs das missões finalizadas
-var selected_mission_data: MissionData = null # Missão clicada no menu atualmente
+var completed_missions: Array[String] = [] 
+var selected_mission_data: MissionData = null 
 
-
-# Agora a coleção guarda instâncias de HeroState indexadas por ID
 var hero_collection: Dictionary = {}
-
-# Mantemos seu design inteligente de guardar apenas as Strings dos IDs na party ativa
 var active_party: Array[String] = []
-
-## Adiciona XP para qualquer herói da coleção
-func add_exp(id_heroi: String, quantidade: int) -> void:
-	if hero_collection.has(id_heroi):
-		var hero: HeroState = hero_collection[id_heroi]
-		var previous_level = hero.get_level()
-		
-		hero.current_exp += quantidade
-		print("✨ [PlayerData] %s ganhou %d de XP! Total: %d" % [id_heroi, quantidade, hero.current_exp])
-		
-		# Se subiu de nível, você pode opcionalmente curar o herói ou rodar um VFX
-		if hero.get_level() > previous_level:
-			print("🆙 [PlayerData] %s subiu para o nível %d!" % [hero.blueprint.nome, hero.get_level()])
 
 ## Aplica dano ou cura passando valores positivos (cura) ou negativos (dano)
 func update_hp_by_id(id_heroi: String, modificador: int) -> void:
 	if hero_collection.has(id_heroi):
 		var heroi: HeroState = hero_collection[id_heroi]
-		heroi.modificar_hp(modificador)
-		print("💾 [PlayerData] HP de %s modificado. Atual: %d/%d" % [heroi.blueprint.nome, heroi.hp_atual, heroi.get_max_hp()])
+		heroi.modify_hp(modificador)
+		print("💾 [PlayerData] HP de %s modificado. Atual: %d/%d" % [heroi.blueprint.character_name, heroi.current_hp, heroi.get_max_hp()])
 
 ## Função utilitária para curar todos da party ativa (fim de missões)
 func heal_active_party() -> void:
 	for id in active_party:
 		if hero_collection.has(id):
 			hero_collection[id].full_heal()
-	print("❤️ [PlayerData] Toda a equipe ativa foi totalmente curada!")
+	print("❤️ [PlayerData] Toda a equipe ativa foi totalmente curada e limpa de efeitos!")
 
 ## Retorna o objeto completo do herói para a UI ou Combate lerem os dados
 func get_hero(id_hero: String) -> HeroState:
 	return hero_collection.get(id_hero, null)
+
 func _ready() -> void:
-	# --- MODO DE JOGO NORMAL ---
 	_load_initial_heroes()
-	
-	# --- MODO DESENVOLVEDOR / TESTES ---
-	# Descomente a linha abaixo e comente a de cima para testar com TODOS os heróis da pasta!
-	# _load_heroes_from_folder()
+
 func _load_heroes_from_folder() -> void:
 	var caminho_pasta = "res://resources/heroes/"
 	var dir = DirAccess.open(caminho_pasta)
@@ -61,66 +42,49 @@ func _load_heroes_from_folder() -> void:
 		var nome_arquivo = dir.get_next()
 		
 		while nome_arquivo != "":
-			# Garante que só vai ler arquivos de recurso (.tres) e ignorar arquivos .import
 			if not dir.current_is_dir() and nome_arquivo.ends_with(".tres"):
 				var caminho_completo = caminho_pasta + nome_arquivo
 				var data = load(caminho_completo) as HeroData
 				
 				if data:
-					# Instancia o estado dinâmico exatamente como fazíamos antes
 					var new_state = HeroState.new()
 					new_state.blueprint = data
-					new_state.current_exp = 0
 					new_state.full_heal()
 					
 					hero_collection[data.id] = new_state
-					# Como deve ficar corrigido:
-					var name_for_print = "Herói"
-					if "nome" in data:
-						name_for_print = data.nome
-					elif "character_name" in data:
-						name_for_print = data.character_name
-
+					
+					var name_for_print = data.character_name if "character_name" in data else "Herói"
 					print("📦 [PlayerData] Herói carregado automaticamente: %s" % name_for_print)
 
 			nome_arquivo = dir.get_next()
 		dir.list_dir_end()
 	else:
 		push_error("PlayerData: Não foi possível acessar a pasta de heróis em: " + caminho_pasta)
-# No seu PlayerData.gd
 
-## Adiciona um herói novo à coleção do jogador usando a ID dele
 func add_hero_to_collection(hero_id: String) -> void:
-	# Evita duplicar se o jogador já tiver o herói
 	if hero_collection.has(hero_id):
 		print("⚠️ [PlayerData] Hero already unlocked: ", hero_id)
 		return
 		
-	# Monta o caminho do arquivo do herói dinamicamente
 	var path = "res://resources/heroes/" + hero_id + ".tres"
 	
-	# Na Web/Mobile, o arquivo real pode estar com o sufixo .remap se for verificado em disco,
-	# mas o 'load()' do Godot aceita o caminho original '.tres' perfeitamente em runtime!
 	if ResourceLoader.exists(path) or ResourceLoader.exists(path + ".remap"):
 		var data = load(path) as HeroData
 		if data:
 			var new_state = HeroState.new()
 			new_state.blueprint = data
-			new_state.current_exp = 0
 			new_state.full_heal()
 			
 			hero_collection[hero_id] = new_state
 			print("🏅 [PlayerData] NEW HERO UNLOCKED: ", data.character_name)
 			
-			# 💾 Salva o jogo na hora para o jogador não perder o herói novo!
 			if SaveManager.has_method("save_game"):
 				SaveManager.save_game()
 	else:
 		push_error("[PlayerData] Failed to find hero resource file at: " + path)
+
 func _load_initial_heroes() -> void:
 	hero_collection.clear()
-	
 	print("🛡️ [PlayerData] Initializing core starting roster...")
 	for hero_id in INITIAL_HERO_IDS:
-		# Chama a função de adicionar que criamos anteriormente!
 		add_hero_to_collection(hero_id)

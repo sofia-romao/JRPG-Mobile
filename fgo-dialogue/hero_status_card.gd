@@ -16,9 +16,7 @@ func configurar_card(hero_state: HeroState) -> void:
 	if name_label and hero_state.blueprint:
 		name_label.text = hero_state.blueprint.character_name
 		
-	if level_label:
-		level_label.text = "Lv. " + str(hero_state.get_level())
-		
+	
 	_update_hp_text(hero_state.current_hp, hero_state.get_max_hp())
 	_update_mp_text(hero_state.current_mp, hero_state.get_max_mp()) # 🔮 Desenha o MP inicial na arena
 	

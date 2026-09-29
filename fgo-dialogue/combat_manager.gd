@@ -72,21 +72,32 @@ func initialize_combat(data: CombatData) -> void:
 	if background_texture and combat_data.background:
 		background_texture.texture = combat_data.background
 	if combat_data.bgm:
-			AudioManager.play_bgm(combat_data.bgm)
+		AudioManager.play_bgm(combat_data.bgm)
+		
 	spawned_enemy = EnemyState.new()
-	spawned_enemy.initialize(combat_data.enemy)
-	enemy_sprite.texture = spawned_enemy.blueprint.combat_sprite
+	# 🚨 CORRIGIDO: Inicializa passando a estrutura completa do puzzle configurada na missão
+	spawned_enemy.initialize(combat_data.boss_structure) 
+	
+	enemy_sprite.texture = spawned_enemy.get_current_sprite()
+	
+	# Conexões de Sinais
 	spawned_enemy.hp_changed.connect(_on_enemy_hp_changed)
+	# Escuta as transformações para rodar VFX na UI Mobile
+	spawned_enemy.phase_changed.connect(_on_enemy_phase_changed)
 	
 	if enemy_hp_bar:
 		enemy_hp_bar.max_value = spawned_enemy.get_max_hp()
 		enemy_hp_bar.value = spawned_enemy.current_hp
+		
 	if ui_dialogue_box: 
 		ui_dialogue_box.hide()
-	# 1. Filtra a equipe viva e instancia os nós dos cartões na árvore (PartyContainer)
+		
 	_update_active_party_list()
 	
-	# 2. ATUALIZAÇÃO VISUAL: Garante que cada cartão instanciado desenhe o texto de HP e Nível!
+	# 🚨 NOVO: Checagem de "Frame Zero" passando a party ativa para os gatilhos do BossPhaseData
+	var initial_context = {"active_party_ids": active_party_ids}
+	spawned_enemy.evaluate_triggers("on_combat_start", initial_context)
+	
 	for hero_id in active_party_ids:
 		_update_hero_ui_display(hero_id)
 		
@@ -104,12 +115,32 @@ func _next_hero_turn() -> void:
 		
 	current_state = CombatState.HERO_TURN
 	var hero_id = active_party_ids[current_hero_index]
+	var hero_state = PlayerData.get_hero(hero_id)
 	
+	# ⏳ [NOVO] PROCESSA OS STATUS DO HERÓI NO INÍCIO DO TURNO DELE
+	# Se ele tiver um veneno, toma dano aqui. Se tiver passiva de MP (como o tanque híbrido), regenera aqui!
+	if hero_state:
+		_processar_passivas_e_status_inicio_heroi(hero_id, hero_state)
+		
 	_manage_ui_highlight(hero_id)
 	input_blocked = false
-	
-	# Revela os botões retirando a sobreposição de diálogo
 	_alternar_interface_combate(true, hero_id)
+func _processar_passivas_e_status_inicio_heroi(hero_id: String, hero_state: HeroState) -> void:
+	# 1. Roda o decréscimo natural de buffs/debuffs
+	hero_state.tick_status() 
+	
+	# 2. [EXEMPLO DE DESIGN] Passiva do Tanque Híbrido: Regenerar MP de todos no início do turno
+	if hero_state.blueprint.passive_id == "PARTY_MANA_REGEN" and hero_state.current_hp > (hero_state.get_max_hp() * 0.5):
+		for p_id in active_party_ids:
+			var member = PlayerData.get_hero(p_id)
+			if member:
+				member.modify_mp(5)
+				_update_hero_ui_display(p_id)
+		print("🔮 Passiva Ativada: Regenerado 5 MP para a equipe!")
+		
+	# 3. Garante que qualquer alteração de barra seja redesenhada na UI mobile
+	_update_hero_ui_display(hero_id)
+
 func _finish_current_hero_turn() -> void:
 	input_blocked = true
 	current_hero_index += 1 
@@ -118,9 +149,12 @@ func _finish_current_hero_turn() -> void:
 
 func _start_enemy_turn() -> void:
 	current_state = CombatState.ENEMY_TURN
-	
-	# Ativa a sobreposição imediatamente (não há frames vazios, nada pula!)
 	_alternar_interface_combate(false)
+	
+	# ⏳ [NOVO] PROCESSA OS STATUS DO INIMIGO NO INÍCIO DO TURNO DELE
+	if spawned_enemy and spawned_enemy.has_method("tick_status"):
+		spawned_enemy.tick_status() # Diminui os turnos de buffs/debuffs dele
+		# Aqui você também pode aplicar dano de veneno se o inimigo tiver
 	
 	if ui_dialogue_box:
 		var label = ui_dialogue_box.get_node_or_null("DialogueLabel") as RichTextLabel
@@ -202,10 +236,30 @@ func execute_hero_skill(skill: SkillData) -> void:
 	
 	# Executa o rito de dano normal contra o monstro
 	var damage_base: int = int(hero_state.get_attack() * skill.damage_multiplier)
+	
+	# 🔥 [NOVO] SISTEMA DE COMBO DE STATUS (Estilo Monster Hunter)
+	# Checa se o inimigo tem o status e se a skill atual reage com ele
+	if spawned_enemy.has_method("has_status"):
+		if spawned_enemy.has_status("MOLHADO") and skill.element_type == "ELEC":
+			damage_base = int(damage_base * 2.0) # Dano dobra!
+			print("⚡ COMBO DE STATUS: Choque em alvo molhado causou o dobro de dano!")
+			
+		elif spawned_enemy.has_status("EXAUTO") and skill.element_type == "PHYSICAL":
+			damage_base = int(damage_base * 1.5) # Bate mais forte em alvo caído
+			print("💥 IMPACTO: Dano extra em inimigo exausto!")
+
+	# Executa o rito de dano normal contra o monstro
 	spawned_enemy.receive_combat_damage(damage_base, skill.element_type)
+	
+	# ➕ [NOVO] APLICAÇÃO DE STATUS AO INIMIGO VIA SKILL (Se a habilidade tiver um efeito atrelado)
+	if "status_to_apply" in skill and skill.status_to_apply != "NONE":
+		if randf() <= skill.status_chance and spawned_enemy.has_method("apply_status"):
+			spawned_enemy.apply_status(skill.status_to_apply, skill.status_duration)
+
 	_trigger_enemy_damage_popup(damage_base, skill.element_type)
 	_flash_enemy_color(skill.element_type)
 	_trigger_enemy_shake(10.0)
+	
 	# 🔊 2. Toca o som de impacto no momento exato do popup de dano
 	if skill.sound_impact:
 		AudioManager.play_sfx(skill.sound_impact)
@@ -265,6 +319,14 @@ func _execute_enemy_attack() -> void:
 	if active_party_ids.is_empty():
 		_run_state_based_actions()
 		return
+
+	# 🛡️ TOTALMENTE GENÉRICO: O inimigo avisa se o BossPhaseData atual dele impede ações!
+	if spawned_enemy.has_method("is_stunned") and spawned_enemy.is_stunned():
+		if dialogue_label:
+			dialogue_label.text = "[center][color=gray]%s está incapacitado na fase atual![/color][/center]" % spawned_enemy.active_blueprint.name
+		await get_tree().create_timer(1.2).timeout
+		_finish_enemy_turn()
+		return
 		
 	var random_index: int = randi() % active_party_ids.size()
 	var target_hero_id: String = active_party_ids[random_index]
@@ -277,14 +339,17 @@ func _execute_enemy_attack() -> void:
 	var choice_roll = randf()
 	var used_skill: SkillData = null
 	
-	if not spawned_enemy.blueprint.skill_list.is_empty() and choice_roll < 0.60:
-		var random_skill_id = spawned_enemy.blueprint.skill_list.pick_random()
+	# Puxa as habilidades exclusivas do blueprint ativo na rodada
+	var available_skills = spawned_enemy.get_current_skill_list()
+
+	if not available_skills.is_empty() and choice_roll < 0.75:
+		var random_skill_id = available_skills.pick_random()
 		var candidate_skill = SkillsDatabase.get_skill(random_skill_id)
 		if candidate_skill and spawned_enemy.current_mp >= candidate_skill.mp_cost:
 			used_skill = candidate_skill
 
-	# Configuração padrão de ataque
-	var damage_base = spawned_enemy.get_attack()
+	# Configuração dinâmica baseada na fase em runtime
+	var damage_base = spawned_enemy.get_attack() 
 	var element = "PHYSICAL"
 	var action_name = "Ataque Básico"
 
@@ -296,36 +361,29 @@ func _execute_enemy_attack() -> void:
 		if used_skill.sound_cast:
 			AudioManager.play_sfx(used_skill.sound_cast)
 
-	# 📢 ANUNCIANTE VISUAL (Injeta o texto na caixa que já está visível)
 	if dialogue_label:
-		dialogue_label.text = "[center]O inimigo usa [b]%s[/b]![/center]" % action_name.to_upper()
+		dialogue_label.text = "[center][b]%s[/b]: [b]%s[/b]![/center]" % [spawned_enemy.active_blueprint.name.to_upper(), action_name.to_upper()]
 
-	await get_tree().create_timer(0.6).timeout # Tempo para o jogador ler o anúncio
+	await get_tree().create_timer(0.6).timeout
 
-	# Executa o dano real no herói
 	if used_skill != null:
 		target_hero.take_damage_combat(damage_base, element)
 	else:
 		target_hero.take_damage_combat(damage_base, "PHYSICAL")
 		
 	_trigger_damage_popup(target_hero_id, damage_base, element)
-	
-	# 💥 JUICE VISUAL DE PRIMEIRA PESSOA:
-	_trigger_screen_flash(element)  # Clarão na tela inteira com a cor elemental
-	_trigger_screen_shake(15.0)     # Sacode o VisualArea independentemente
+	_trigger_screen_flash(element)
+	_trigger_screen_shake(15.0)
 
 	if used_skill != null and used_skill.sound_impact:
 		AudioManager.play_sfx(used_skill.sound_impact)
 
-	# Atualiza os números textuais da barra dos heróis
 	_update_hero_ui_display(target_hero_id)
 	
 	if target_hero.current_hp <= 0:
 		active_party_ids.remove_at(random_index)
 
-	# Aguarda o clarão e o tremor assentarem para o jogador ver o resultado
 	await get_tree().create_timer(1.0).timeout 
-	
 	_run_state_based_actions()
 	
 	if current_state == CombatState.ENEMY_TURN:
@@ -369,9 +427,11 @@ func _on_combat_settled(victory: bool) -> void:
 
 # --- SISTEMAS DE UI ---
 
-func _on_enemy_hp_changed(new_hp: int, _max_hp: int, _change: int) -> void:
+func _on_enemy_hp_changed(new_hp: int, max_hp: int, _change: int) -> void:
 	if enemy_hp_bar:
-		var tween = create_tween()
+		var tween = create_tween().set_parallel(true)
+		# Sincroniza o novo valor máximo trazido pelo clamp da nova fase
+		tween.tween_property(enemy_hp_bar, "max_value", max_hp, 0.1)
 		tween.tween_property(enemy_hp_bar, "value", new_hp, 0.45)
 
 func _update_active_party_list() -> void:
@@ -557,3 +617,24 @@ func _animate_enemy_defeat() -> void:
 		
 	# Aguarda o Tween terminar completamente antes de liberar a linha de execução
 	await tween.finished
+
+## Executa a mudança visual do Boss quando ele sofre mutação de blueprint via BossPhaseData
+func _on_enemy_phase_changed(new_blueprint_id: String) -> void:
+	if not enemy_sprite or not spawned_enemy: return
+	
+	# 1. Atualiza visualmente o sprite usando o getter seguro do EnemyState
+	enemy_sprite.texture = spawned_enemy.get_current_sprite()
+	
+	# 2. Juice Visual de Impacto (Estilo SMT/Monster Hunter)
+	_flash_enemy_color("PHYSICAL") # Dá um clarão estourado HDR no monstro
+	_trigger_enemy_shake(25.0)     # Sacode o monstro fortemente pelo urro da transformação
+	_trigger_screen_shake(15.0)    # Faz a tela mobile inteira tremer
+	
+	# 3. Anúncio textual dramático na caixa de diálogos com o nome do novo EnemyData
+	if dialogue_label:
+		_alternar_interface_combate(false)
+		dialogue_label.text = "[center][b][color=yellow]⚠️ ADVERTÊNCIA: O INIMIGO MUDOU DE FORMA! -> %s ⚠️[/color][/b][/center]" % spawned_enemy.active_blueprint.name.to_upper()
+		await get_tree().create_timer(1.5).timeout
+		if current_state == CombatState.HERO_TURN:
+			var active_hero_id = active_party_ids[current_hero_index]
+			_alternar_interface_combate(true, active_hero_id)

@@ -1,7 +1,7 @@
 # save_manager.gd
 extends Node
 
-const SAVE_PATH = "user://savegame.tres" # ◄ Agora salva como recurso nativo do Godot!
+const SAVE_PATH = "user://savegame.tres" 
 
 ## Cria o resource de save, injeta os dados globais e grava no disco
 func save_game() -> void:
@@ -12,16 +12,15 @@ func save_game() -> void:
 	save_res.completed_missions = PlayerData.completed_missions
 	save_res.active_party = PlayerData.active_party
 	
-	# Captura o progresso dinâmico de cada herói na coleção
+	# Captura o progresso dinâmico de cada herói na coleção (Apenas recursos atuais)
 	for hero_id in PlayerData.hero_collection:
 		var hero_state: HeroState = PlayerData.hero_collection[hero_id]
 		save_res.hero_stats[hero_id] = {
-			"current_exp": hero_state.current_exp,
 			"current_hp": hero_state.current_hp,
 			"current_mp": hero_state.current_mp
 		}
 	
-	# A mágica nativa do Godot acontece aqui: salva o arquivo de uma vez só!
+	# Salva o arquivo de uma vez só como recurso nativo do Godot
 	var error = ResourceSaver.save(save_res, SAVE_PATH)
 	if error == OK:
 		print("💾 [SaveManager] Game saved successfully as Resource to: ", SAVE_PATH)
@@ -44,15 +43,23 @@ func load_game() -> bool:
 	PlayerData.completed_missions = save_res.completed_missions
 	PlayerData.active_party = save_res.active_party
 	
-	# Aplica a vida e EXP salvas em cima das instâncias de heróis já existentes
+	# Aplica a vida e mana salvas em cima das instâncias de heróis
 	for hero_id in save_res.hero_stats:
+		# 🏅 CASO SEJA UM HERÓI SALVO, MAS NÃO CARREGADO NA STARTING ROSTER:
+		# Nós destravamos ele na coleção dinamicamente antes de aplicar os status!
+		if not PlayerData.hero_collection.has(hero_id):
+			PlayerData.add_hero_to_collection(hero_id)
+			
 		if PlayerData.hero_collection.has(hero_id):
 			var hero_state: HeroState = PlayerData.hero_collection[hero_id]
 			var stats = save_res.hero_stats[hero_id]
 			
-			hero_state.current_exp = stats.get("current_exp", 0)
+			# Resgata os status, usando os valores máximos do blueprint fixo como fallback seguro
 			hero_state.current_hp = stats.get("current_hp", hero_state.get_max_hp())
 			hero_state.current_mp = stats.get("current_mp", hero_state.get_max_mp())
+			
+			# Nota: Status temporários/debuffs como Veneno não são salvos intencionalmente,
+			# pois eles limpam ao fim do combate/missão.
 			
 	print("📂 [SaveManager] Game resource loaded successfully!")
 	return true

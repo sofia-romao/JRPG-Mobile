@@ -83,7 +83,6 @@ func _execute_new_game() -> void:
 	for id in PlayerData.hero_collection:
 		var hero = PlayerData.hero_collection[id]
 		if hero:
-			hero.current_exp = 0
 			if hero.has_method("full_heal"):
 				hero.full_heal()
 			
