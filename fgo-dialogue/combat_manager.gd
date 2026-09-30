@@ -360,6 +360,7 @@ func execute_hero_party_heal(skill: SkillData) -> void:
 	_finish_current_hero_turn()
 
 ## Executes the enemy turn, querying the boss AI brain for actions and targets dynamically.
+## Executes the enemy turn, querying the boss AI brain, and managing Single-Target, AoE, and Self actions.
 func _execute_enemy_attack() -> void:
 	if active_party_ids.is_empty():
 		_run_state_based_actions()
@@ -376,91 +377,117 @@ func _execute_enemy_attack() -> void:
 	# 📦 STEP 1: Pack the battle context data for the AI to read safely
 	var combat_context = {
 		"boss_state": spawned_enemy,
-		"active_party_ids": active_party_ids.duplicate() # Sends a copy of live hero IDs
+		"active_party_ids": active_party_ids.duplicate()
 	}
 	
 	# 🧠 STEP 2: Query the specialist AI brain from the current active blueprint
 	var ai_decision: Dictionary = { "skill": null, "target_id": "" }
 	
 	if spawned_enemy.active_blueprint and "ai_brain" in spawned_enemy.active_blueprint and spawned_enemy.active_blueprint.ai_brain:
-		# The Combat Manager delegates the decision to the decoupled Resource brain!
 		ai_decision = spawned_enemy.active_blueprint.ai_brain.choose_action(combat_context)
 	else:
-		# Fallback safe option in case a generic monster lacks an ai_brain file
-		ai_decision = {
-			"skill": null,
-			"target_id": active_party_ids.pick_random()
-		}
+		ai_decision = { "skill": null, "target_id": active_party_ids.pick_random() }
 		print("⚠️ [CombatManager] Warning: %s lacks an AI Brain resource. Using random attack." % spawned_enemy.active_blueprint.name)
 
-	# Extract data from the AI contract decision
 	var used_skill: SkillData = ai_decision.get("skill")
 	var target_hero_id: String = ai_decision.get("target_id")
 	
-	# Safety validation: If the AI failed to give a valid live target, grab a random fallback
-	if target_hero_id == "" or not active_party_ids.has(target_hero_id):
-		if not active_party_ids.is_empty():
-			target_hero_id = active_party_ids.pick_random()
-		else:
-			_finish_enemy_turn()
-			return
-
-	var target_hero = PlayerData.get_hero(target_hero_id)
-	if not target_hero or target_hero.current_hp <= 0:
-		_finish_enemy_turn()
-		return
-
 	# STEP 3: Setup dynamic execution variables based on the AI's choice
 	var damage_base = spawned_enemy.get_attack() 
 	var element = "PHYSICAL"
 	var action_name = "Basic Attack"
+	var target_type: SkillData.TargetType = SkillData.TargetType.ENEMY # Default to single target enemy from skill data perspective
 
 	if used_skill != null:
-		# Pays the real MP cost on the Boss data pool
 		spawned_enemy.modify_mp(-used_skill.mp_cost)
 		damage_base = int(spawned_enemy.get_attack() * used_skill.damage_multiplier)
 		element = used_skill.element_type
 		action_name = used_skill.name
+		target_type = used_skill.target_type
 		if used_skill.sound_cast:
 			AudioManager.play_sfx(used_skill.sound_cast)
 
-	# Update the Mobile Narrative UI Box
+	# Update Narrative Box based on Target Type
 	if dialogue_label:
-		dialogue_label.text = "[center][b]%s[/b] USED [b]%s[/b] ON [b]%s[/b]![/center]" % [
-			spawned_enemy.active_blueprint.name.to_upper(), 
-			action_name.to_upper(),
-			target_hero.blueprint.character_name.to_upper()
-		]
+		if used_skill != null and target_type == SkillData.TargetType.ALLY_ALL:
+			dialogue_label.text = "[center][b]%s[/b] CASTED AOE [b]%s[/b] ON THE PARTY![/center]" % [spawned_enemy.active_blueprint.name.to_upper(), action_name.to_upper()]
+		elif used_skill != null and target_type == SkillData.TargetType.ENEMY:
+			dialogue_label.text = "[center][b]%s[/b] USED SELF SKILL [b]%s[/b]![/center]" % [spawned_enemy.active_blueprint.name.to_upper(), action_name.to_upper()]
+		else:
+			var target_name = "ALLY"
+			var target_hero = PlayerData.get_hero(target_hero_id)
+			if target_hero: target_name = target_hero.blueprint.character_name.to_upper()
+			dialogue_label.text = "[center][b]%s[/b] USED [b]%s[/b] ON [b]%s[/b]![/center]" % [spawned_enemy.active_blueprint.name.to_upper(), action_name.to_upper(), target_name]
 
 	await get_tree().create_timer(0.6).timeout
 
-	# 🎲 STEP 4: Inflict damage and evaluate the hidden d100 roll inside the HeroState
-	# Captures the outcome text ("Miss!", "Critical Hit!", "Resist!", "Immune!", "Hit!")
-	var hero_outcome: String = target_hero.take_damage_combat(damage_base, element)
+	# ⚔️ STEP 4: RESOLVE ACTIONS BASED ON TARGET TYPE ⚔️
+	
+	# SCENARIO A: SELF SKILL (The Boss casts a buff/heal on themselves)
+	if used_skill != null and target_type == SkillData.TargetType.ENEMY:
+		# If it's a healing element, recover Boss HP
+		if element == "HEAL":
+			var heal_amount = int(spawned_enemy.get_attack() * used_skill.damage_multiplier)
+			spawned_enemy.current_hp += heal_amount # Sincroniza e emite sinais de vida automaticamente
+			_trigger_enemy_damage_popup(heal_amount, "HEAL")
 		
-	# 🧼 TEXT POPUP GENERATION: Trigger text reaction over the specific hit hero card
-	_trigger_hero_damage_popup_text(target_hero_id, hero_outcome, element)
-	_trigger_screen_flash(element)
-	_trigger_screen_shake(15.0)
+		# Apply status effect/buff to the Boss themselves
+		if used_skill.status_to_apply:
+			var duration = used_skill.status_to_apply.default_duration
+			if spawned_enemy.has_method("apply_status"):
+				spawned_enemy.apply_status(used_skill.status_to_apply, duration)
+				
+		_trigger_screen_flash(element)
 
+	# SCENARIO B: AREA OF EFFECT (AoE attack hitting the entire live party)
+	elif used_skill != null and target_type == SkillData.TargetType.ALLY_ALL:
+		_trigger_screen_flash(element)
+		_trigger_screen_shake(18.0)
+		
+		# Loops through a copy of the party to prevent index corruption mid-loop
+		var current_squad = active_party_ids.duplicate()
+		for hero_id in current_squad:
+			var target_hero = PlayerData.get_hero(hero_id)
+			if target_hero and target_hero.current_hp > 0:
+				# Rolls hidden d100 individually for each hero in the squad!
+				var hero_outcome: String = target_hero.take_damage_combat(damage_base, element)
+				
+				_trigger_hero_damage_popup_text(hero_id, hero_outcome, element)
+				_update_hero_ui_display(hero_id)
+				
+				# Track death individually per hero
+				if target_hero.current_hp <= 0 and hero_outcome != "Miss!":
+					var idx = active_party_ids.find(hero_id)
+					if idx != -1: active_party_ids.remove_at(idx)
+
+	# SCENARIO C: CLASSIC SINGLE TARGET (Hits one selected hero)
+	else:
+		# Safety check for single target fallback
+		if target_hero_id == "" or not active_party_ids.has(target_hero_id):
+			target_hero_id = active_party_ids.pick_random()
+			
+		var target_hero = PlayerData.get_hero(target_hero_id)
+		if target_hero and target_hero.current_hp > 0:
+			var hero_outcome: String = target_hero.take_damage_combat(damage_base, element)
+			
+			_trigger_hero_damage_popup_text(target_hero_id, hero_outcome, element)
+			_trigger_screen_flash(element)
+			_trigger_screen_shake(15.0)
+			_update_hero_ui_display(target_hero_id)
+			
+			if target_hero.current_hp <= 0 and hero_outcome != "Miss!":
+				var dead_idx = active_party_ids.find(target_hero_id)
+				if dead_idx != -1: active_party_ids.remove_at(dead_idx)
+
+	# Play impact sound effects if configured
 	if used_skill != null and used_skill.sound_impact:
 		AudioManager.play_sfx(used_skill.sound_impact)
-
-	# Redraw the mobile UI card for the target hero instantly
-	_update_hero_ui_display(target_hero_id)
-	
-	# SMT Death Tracker: Only remove the hero from active squad if they died and didn't evade ("Miss!")
-	if target_hero.current_hp <= 0 and hero_outcome != "Miss!":
-		var dead_idx = active_party_ids.find(target_hero_id)
-		if dead_idx != -1:
-			active_party_ids.remove_at(dead_idx)
 
 	await get_tree().create_timer(1.0).timeout 
 	_run_state_based_actions()
 	
 	if current_state == CombatState.ENEMY_TURN:
 		_finish_enemy_turn()
-
 func _run_state_based_actions() -> void:
 	# Guarda o estado original para saber se mudou
 	var original_state = current_state
@@ -478,10 +505,20 @@ func _run_state_based_actions() -> void:
 		_on_combat_settled(false)
 		return
 		
-	# Se ninguém morreu, devolve o estado para o fluxo continuar de onde parou
+	# 🌟 O TOQUE DE MESTRE DO DESIGN (SBA SYSTEM)
+	# Antes de devolver o fluxo para os turnos, a SBA força o monstro a reavaliar a mesa.
+	# Enviamos a lista de quem sobrou vivo para que o 'TriggerHeroDeath' possa julgar em tempo real!
+	if spawned_enemy:
+		var context = {
+			"active_party_ids": active_party_ids.duplicate()
+		}
+		# O próprio EnemyState vai processar os gatilhos, detectar a ausência da Altria
+		# e disparar o rito de transformação (VFX, troca de sprite e diálogo) imediatamente!
+		spawned_enemy.evaluate_triggers("on_damage", context)
+		
+	# Se ninguém ganhou ou perdeu o jogo por completo, devolve o estado para o fluxo continuar de onde parou
 	current_state = original_state
-
-## Executa o encerramento da cena de forma estrita e isolada
+	
 ## Executa o encerramento da cena de forma estrita e isolada
 func _on_combat_settled(victory: bool) -> void:
 	input_blocked = true
