@@ -56,7 +56,7 @@ var _visual_area_original_position: Vector2 = Vector2.ZERO
 @export var ui_dialogue_box: PanelContainer
 @export var visual_area_node: Control
 @export var screen_flash_effect: ColorRect 
-
+@export var enemy_status_icons_container: HBoxContainer
 func _ready() -> void:
 	if visual_area_node:
 		_visual_area_original_position = visual_area_node.position
@@ -81,7 +81,14 @@ func initialize_combat(data: CombatData) -> void:
 	enemy_sprite.texture = spawned_enemy.get_current_sprite()
 	
 	# Conexões de Sinais
+	# Dentro de initialize_combat(data: CombatData) no combat_manager.gd
 	spawned_enemy.hp_changed.connect(_on_enemy_hp_changed)
+	spawned_enemy.hp_changed.connect(func(new_hp, max_hp, change):
+	# Como 'change' é negativo para dano (ex: -45), usamos abs() para exibir o número positivo na UI
+		if change < 0:
+			_trigger_enemy_damage_popup(abs(change), "PHYSICAL")
+)
+
 	# Escuta as transformações para rodar VFX na UI Mobile
 	spawned_enemy.phase_changed.connect(_on_enemy_phase_changed)
 	
@@ -100,7 +107,15 @@ func initialize_combat(data: CombatData) -> void:
 	
 	for hero_id in active_party_ids:
 		_update_hero_ui_display(hero_id)
-		
+	# Injeta as passivas permanentes na interface e no estado no Frame Zero
+	for hero_id in active_party_ids:
+		var hero_state = PlayerData.get_hero(hero_id)
+	
+		if hero_state and hero_state.blueprint and "passive_resource" in hero_state.blueprint:
+			var passive_effect = hero_state.blueprint.passive_resource
+			if passive_effect:
+				# 🌟 Injeta com -1 para ativar o modo permanente protegido
+				hero_state.apply_status(passive_effect, -1) 
 	_next_hero_turn()
 
 # --- REGRAS DE FLUXO DE TURNO ---
@@ -120,49 +135,53 @@ func _next_hero_turn() -> void:
 	# ⏳ [NOVO] PROCESSA OS STATUS DO HERÓI NO INÍCIO DO TURNO DELE
 	# Se ele tiver um veneno, toma dano aqui. Se tiver passiva de MP (como o tanque híbrido), regenera aqui!
 	if hero_state:
-		_processar_passivas_e_status_inicio_heroi(hero_id, hero_state)
+		_process_hero_passives_and_statuses_start(hero_id, hero_state)
 		
 	_manage_ui_highlight(hero_id)
 	input_blocked = false
 	_alternar_interface_combate(true, hero_id)
-func _processar_passivas_e_status_inicio_heroi(hero_id: String, hero_state: HeroState) -> void:
-	# 1. Roda o decréscimo natural de buffs/debuffs
+## Processes natural status ticks and triggers modular resource passives at the start of the hero's turn
+func _process_hero_passives_and_statuses_start(hero_id: String, hero_state: HeroState) -> void:
+	# 1. Ticks status reductions naturally and executes their on_turn_tick behaviors
 	hero_state.tick_status() 
 	
-	# 2. [EXEMPLO DE DESIGN] Passiva do Tanque Híbrido: Regenerar MP de todos no início do turno
-	if hero_state.blueprint.passive_id == "PARTY_MANA_REGEN" and hero_state.current_hp > (hero_state.get_max_hp() * 0.5):
-		for p_id in active_party_ids:
-			var member = PlayerData.get_hero(p_id)
-			if member:
-				member.modify_mp(5)
-				_update_hero_ui_display(p_id)
-		print("🔮 Passiva Ativada: Regenerado 5 MP para a equipe!")
-		
-	# 3. Garante que qualquer alteração de barra seja redesenhada na UI mobile
+	# 2. 🧼 CLEANUP: The hardcoded "PARTY_MANA_REGEN" string check is gone!
+	# Every status or passive attached to the hero now handles its own execution 
+	# inside its respective script via the 'tick_status' call above.
+	
+	# 3. Ensures the mobile UI draws the updated bars instantly
 	_update_hero_ui_display(hero_id)
-
+	
+	# If any other party member's MP changed due to group passives, update their UI cards too
+	for p_id in active_party_ids:
+		if p_id != hero_id:
+			_update_hero_ui_display(p_id)
 func _finish_current_hero_turn() -> void:
 	input_blocked = true
 	current_hero_index += 1 
 	await get_tree().create_timer(0.4).timeout
 	_next_hero_turn()
 
+# Dentro do seu combat_manager.gd
+
 func _start_enemy_turn() -> void:
 	current_state = CombatState.ENEMY_TURN
 	_alternar_interface_combate(false)
 	
-	# ⏳ [NOVO] PROCESSA OS STATUS DO INIMIGO NO INÍCIO DO TURNO DELE
+	# ⏳ [UPDATED] Processes enemy status effects modularly at the start of their turn
 	if spawned_enemy and spawned_enemy.has_method("tick_status"):
-		spawned_enemy.tick_status() # Diminui os turnos de buffs/debuffs dele
-		# Aqui você também pode aplicar dano de veneno se o inimigo tiver
+		# Isso vai rodar o 'on_turn_tick' de todos os Resources de status ativos no monstro
+		# Sem nenhuma string ou cálculo manual de dano por veneno aqui dentro!
+		spawned_enemy.tick_status() 
 	
 	if ui_dialogue_box:
 		var label = ui_dialogue_box.get_node_or_null("DialogueLabel") as RichTextLabel
 		if label: 
-			label.text = "[center]Turno do Inimigo...[/center]"
+			label.text = "[center]Enemy Turn...[/center]"
 		
 	await get_tree().create_timer(0.6).timeout
 	_execute_enemy_attack()
+
 	
 func _finish_enemy_turn() -> void:
 	current_hero_index = 0
@@ -194,6 +213,7 @@ func execute_hero_basic_attack() -> void:
 	if current_state == CombatState.HERO_TURN:
 		_finish_current_hero_turn()
 
+# Dentro de combat_manager.gd
 func execute_hero_skill(skill: SkillData) -> void:
 	if input_blocked or current_state != CombatState.HERO_TURN:
 		return
@@ -202,70 +222,49 @@ func execute_hero_skill(skill: SkillData) -> void:
 	var hero_id = active_party_ids[current_hero_index]
 	var hero_state = PlayerData.get_hero(hero_id)
 	
-	# --- 🧠 SMT SYSTEM: CÁLCULO E VALIDAÇÃO DE CUSTOS ---
+	# --- CÁLCULO E VALIDAÇÃO DE CUSTOS (Mantido o design SMT original) ---
 	if skill.element_type == "PHYSICAL":
-		# Skills físicas custam uma porcentagem do HP Máximo (ex: mp_cost = 15 significa 15% do Max HP)
 		var hp_cost: int = int(hero_state.get_max_hp() * (skill.mp_cost / 100.0))
-		
-		# Regra de SMT: Você precisa ter mais HP do que o custo exige para conjurar (não pode se matar pagando custo)
 		if hero_state.current_hp <= hp_cost:
-			print("❌ [Combat] %s doesn't have enough HP to use %s! Cost: %d HP" % [hero_state.blueprint.character_name, skill.name, hp_cost])
-			input_blocked = false # Libera a UI para o jogador escolher outra coisa
-			return
-			
-		# Paga o custo em HP
-		hero_state.modify_hp(-hp_cost)
-		print("🩸 [Combat] %s paid %d HP to cast %s." % [hero_state.blueprint.character_name, hp_cost, skill.name])
-		_update_hero_ui_display(hero_id) # Atualiza a barrinha de HP do herói na tela imediatamente
-		
-	else:
-		# Habilidades mágicas (Agi, Bufu, Zio) custam MP fixo comum
-		if hero_state.current_mp < skill.mp_cost:
-			print("❌ [Combat] %s doesn't have enough MP to use %s! Needs: %d MP" % [hero_state.blueprint.character_name, skill.name, skill.mp_cost])
+			print("❌ [Combat] %s doesn't have enough HP!" % hero_state.blueprint.character_name)
 			input_blocked = false
 			return
-			
-		# Paga o custo em MP
+		hero_state.modify_hp(-hp_cost)
+		_update_hero_ui_display(hero_id)
+	else:
+		if hero_state.current_mp < skill.mp_cost:
+			print("❌ [Combat] %s doesn't have enough MP!" % hero_state.blueprint.character_name)
+			input_blocked = false
+			return
 		hero_state.modify_mp(-skill.mp_cost)
-		print("🔮 [Combat] %s paid %d MP to cast %s." % [hero_state.blueprint.character_name, skill.mp_cost, skill.name])
-		_update_hero_ui_display(hero_id) # Atualiza o status na tela
-	# ----------------------------------------------------
-	# 🔊 1. Toca o som de conjuração se ele existir
+		_update_hero_ui_display(hero_id)
+	# --------------------------------------------------------------------
+	
 	if skill.sound_cast:
 		AudioManager.play_sfx(skill.sound_cast)
 	
-	# Executa o rito de dano normal contra o monstro
+	# Calcula o dano base puro do herói
 	var damage_base: int = int(hero_state.get_attack() * skill.damage_multiplier)
 	
-	# 🔥 [NOVO] SISTEMA DE COMBO DE STATUS (Estilo Monster Hunter)
-	# Checa se o inimigo tem o status e se a skill atual reage com ele
-	if spawned_enemy.has_method("has_status"):
-		if spawned_enemy.has_status("MOLHADO") and skill.element_type == "ELEC":
-			damage_base = int(damage_base * 2.0) # Dano dobra!
-			print("⚡ COMBO DE STATUS: Choque em alvo molhado causou o dobro de dano!")
-			
-		elif spawned_enemy.has_status("EXAUTO") and skill.element_type == "PHYSICAL":
-			damage_base = int(damage_base * 1.5) # Bate mais forte em alvo caído
-			print("💥 IMPACTO: Dano extra em inimigo exausto!")
-
-	# Executa o rito de dano normal contra o monstro
+	# 🧼 FAXINA AQUI: O CombatManager apenas envia o dano bruto. 
+	# Toda a lógica de combos (Molhado + Choque, Exausto + Físico) acontece modularmente 
+	# dentro do 'receive_combat_damage' que alteramos no passo anterior!
 	spawned_enemy.receive_combat_damage(damage_base, skill.element_type)
 	
-	# ➕ [NOVO] APLICAÇÃO DE STATUS AO INIMIGO VIA SKILL (Se a habilidade tiver um efeito atrelado)
-	if "status_to_apply" in skill and skill.status_to_apply != "NONE":
-		if randf() <= skill.status_chance and spawned_enemy.has_method("apply_status"):
+	# 🧼 FAXINA AQUI: Aplicação de status puramente modular e genérica
+	if skill.status_to_apply and randf() <= skill.status_chance:
+		if spawned_enemy.has_method("apply_status"):
 			spawned_enemy.apply_status(skill.status_to_apply, skill.status_duration)
 
-	_trigger_enemy_damage_popup(damage_base, skill.element_type)
+	# Efeitos Visuais e Sonoros de Impacto normais da UI
 	_flash_enemy_color(skill.element_type)
 	_trigger_enemy_shake(10.0)
 	
-	# 🔊 2. Toca o som de impacto no momento exato do popup de dano
 	if skill.sound_impact:
 		AudioManager.play_sfx(skill.sound_impact)
+		
 	_run_state_based_actions()
 	
-	# CORRIGIDO: Removida a duplicidade do '_finish_current_hero_turn()' que estava duplicando turnos fantasmas [9]
 	if current_state == CombatState.HERO_TURN:
 		_finish_current_hero_turn()
 
@@ -638,3 +637,30 @@ func _on_enemy_phase_changed(new_blueprint_id: String) -> void:
 		if current_state == CombatState.HERO_TURN:
 			var active_hero_id = active_party_ids[current_hero_index]
 			_alternar_interface_combate(true, active_hero_id)
+# Dentro de combat_manager.gd
+
+## Clears and reconstructs status effect icons for the Boss on the main HUD
+func _update_enemy_status_icons() -> void:
+	if not enemy_status_icons_container or not spawned_enemy:
+		return
+		
+	# Clear previous enemy icons safely
+	for child in enemy_status_icons_container.get_children():
+		child.queue_free()
+		
+	# Instantiates a TextureRect for each active resource effect on the monster
+	for effect in spawned_enemy.active_status.keys():
+		if effect and effect.icon:
+			var texture_rect = TextureRect.new()
+			texture_rect.texture = effect.icon
+			texture_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			texture_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+			
+			# 📱 Friendly size for the boss display (slightly bigger than heroes)
+			texture_rect.custom_minimum_size = Vector2(28, 28) 
+			
+			# Visual cue: tint it slightly purple or green if it's a poison/debuff on the enemy
+			if "is_debuff" in effect and effect.is_debuff:
+				texture_rect.modulate = Color(0.8, 0.5, 1.0) # Tom arroxeado para debuffs aplicados no Boss
+				
+			enemy_status_icons_container.add_child(texture_rect)

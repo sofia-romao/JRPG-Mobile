@@ -76,31 +76,47 @@ func is_stunned() -> bool:
 
 # --- VULNERABILIDADES E GERENCIAMENTO DE STATUS ---
 
+func apply_status(effect_resource: StatusEffect, duration: int) -> void:
+	# Duplicamos o resource para que modificações em runtime (como acumular stacks) 
+	# não alterem o arquivo original .tres salvo no disco
+	var effect_instance = effect_resource.duplicate()
+	
+	active_status[effect_instance] = duration
+	effect_instance.on_apply(self) # Dispara o gatilho de entrada
+	
+	# Emite o sinal correto dependendo se é herói ou inimigo
+	enemy_status_updated.emit() 
+
 func has_status(status_id: String) -> bool:
-	return active_status.has(status_id)
+	for effect in active_status.keys():
+		if effect.id == status_id:
+			return true
+	return false
 
-func apply_status(status_id: String, duration: int) -> void:
-	active_status[status_id] = duration
-	enemy_status_updated.emit()
-
-## Chamado pelo CombatManager no início/fim da rodada do monstro
+## Called by the Combat Manager to tick down statuses, ignoring permanent passives (-1 duration)
 func tick_status() -> void:
 	var to_remove: Array = []
+	
 	for status in active_status.keys():
+		# 🌟 REGRA NOVA: Se a duração for -1, é uma passiva permanente. 
+		# Ignoramos o decréscimo e rodamos apenas o comportamento de turno dela!
+		if active_status[status] == -1:
+			status.on_turn_tick(self, -1)
+			continue
+			
+		# Comportamento normal para status temporários (Veneno, Sono, etc.)
+		status.on_turn_tick(self, active_status[status])
 		active_status[status] -= 1
+		
 		if active_status[status] <= 0:
 			to_remove.append(status)
 			
 	for status in to_remove:
+		status.on_remove(self)
 		active_status.erase(status)
 		
 	if to_remove.size() > 0:
 		enemy_status_updated.emit()
-		
-	# Checagem passiva de gatilhos (ex: ver se o HP caiu por dano de veneno)
-	var context = {"active_party_ids": PlayerData.active_party}
-	evaluate_triggers("on_turn_tick", context)
-
 # --- SISTEMA DE GATILHOS E TRANSFORMAÇÃO POLIMÓRFICA ---
 
 ## Chamado sempre que um evento relevante acontece no combate
@@ -169,6 +185,7 @@ func _transform_into_phase(new_phase: BossPhaseData) -> void:
 	phase_changed.emit(active_blueprint.id)
 # --- RESOLUÇÃO DE COMBATE ---
 
+# Dentro de enemy_state.gd (Faça o equivalente em take_damage_combat no hero_state.gd)
 func receive_combat_damage(base_dmg: int, element_type: String) -> bool:
 	if not active_blueprint: 
 		return false
@@ -181,9 +198,16 @@ func receive_combat_damage(base_dmg: int, element_type: String) -> bool:
 		"PHYSICAL": multiplier = active_blueprint.res_physical
 		
 	var final_dmg: int = int(base_dmg * multiplier)
+	
+	# 🌟 NOVO: O próprio inimigo varre seus status ativos e altera o dano recebido
+	# repassando o elemento para o status calcular combos (como o MOLHADO + ELEC)
+	for effect in active_status.keys():
+		if effect.has_method("modify_damage"):
+			final_dmg = effect.modify_damage(final_dmg, element_type, false)
+	
 	current_hp -= final_dmg
 	
-	# Monta o contexto em runtime e envia para os gatilhos polimórficos julgarem
+	# Mantém seus gatilhos polimórficos de fase rodando normalmente
 	var context = {
 		"event_type": "on_damage",
 		"element_type": element_type, 

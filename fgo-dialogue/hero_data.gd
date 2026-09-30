@@ -21,5 +21,5 @@ extends Resource
 @export var res_physical: float = 1.0
 
 @export_group("Kit - Passivas e Ativas")
-@export var passive_id: String = "" # ID do efeito passivo que o Combat Manager vai ler
+@export var passive_resource: StatusEffect = null
 @export var skills: Array[String] = [] # Lista das habilidades fixas e ativas do herói

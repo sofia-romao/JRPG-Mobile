@@ -6,7 +6,7 @@
 [ext_resource type="Script" uid="uid://2qf1pi0robua" path="res://command_menu.gd" id="3_iekp2"]
 [ext_resource type="PackedScene" uid="uid://dtka1msgfngt8" path="res://scenes/hero_status_card.tscn" id="4_iekp2"]
 
-[node name="CombatManager" type="Node" unique_id=1214775926 node_paths=PackedStringArray("enemy_sprite", "background_texture", "ui_heroes_container", "ui_command_buttons", "enemy_hp_bar", "dialogue_label", "ui_dialogue_box", "visual_area_node", "screen_flash_effect")]
+[node name="CombatManager" type="Node" unique_id=1214775926 node_paths=PackedStringArray("enemy_sprite", "background_texture", "ui_heroes_container", "ui_command_buttons", "enemy_hp_bar", "dialogue_label", "ui_dialogue_box", "visual_area_node", "screen_flash_effect", "enemy_status_icons_container")]
 script = ExtResource("1_w318q")
 damage_popup_scene = ExtResource("2_iekp2")
 hero_status_card_prefab = ExtResource("4_iekp2")
@@ -19,6 +19,7 @@ dialogue_label = NodePath("UIArea/MainMobileLayout/CommandMenu/DialogueBox/Dialo
 ui_dialogue_box = NodePath("UIArea/MainMobileLayout/CommandMenu/DialogueBox")
 visual_area_node = NodePath("VisualArea")
 screen_flash_effect = NodePath("UIArea/ScreenFlashEffect")
+enemy_status_icons_container = NodePath("VisualArea/EnemySprite/EnemyStatusIconsContainer")
 
 [node name="AudioStreamPlayer" type="AudioStreamPlayer" parent="." unique_id=1230456112]
 
@@ -57,6 +58,14 @@ offset_left = -35.0
 offset_top = -37.0
 offset_right = 158.0
 offset_bottom = -10.0
+
+[node name="EnemyStatusIconsContainer" type="HBoxContainer" parent="VisualArea/EnemySprite" unique_id=560258590]
+custom_minimum_size = Vector2(120, 40)
+layout_mode = 0
+offset_left = -0.559845
+offset_top = -81.40163
+offset_right = 119.440155
+offset_bottom = -41.401627
 
 [node name="UIArea" type="CanvasLayer" parent="." unique_id=154824833]
 
