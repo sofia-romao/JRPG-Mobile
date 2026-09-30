@@ -49,21 +49,35 @@ func _display_current_line() -> void:
 	if line.flash_screen != Color(0,0,0,0):
 		_apply_screen_flash(line.flash_screen)
 	
-	if name_label: 
-		name_label.text = line.character_name
+	# --- SISTEMA DE PERSONAGEM E EXPRESSÃO (SEM BOUNCE) ---
+	if name_label and line.character: 
+		name_label.text = line.character.character_name
 	
 	if portrait_rect:
-		if line.character_portrait != null:
-			if not portrait_rect.visible or portrait_rect.texture != line.character_portrait:
-				portrait_rect.texture = line.character_portrait
+		var target_portrait: Texture2D = null
+		
+		# Verifica se o personagem e a expressão existem no dicionário
+		if line.character and line.character.portraits.has(line.expression):
+			target_portrait = line.character.portraits[line.expression]
+		
+		if target_portrait != null:
+			# Detecta se o retrato mudou em relação à linha anterior
+			var texture_changed: bool = portrait_rect.texture != target_portrait
+			
+			if not portrait_rect.visible or texture_changed:
+				portrait_rect.texture = target_portrait
 				portrait_rect.visible = true
+				
+				# Apenas aplica o esmaecimento (Fade-in) suave original ao mudar de sprite
 				portrait_rect.modulate.a = 0.0
 				create_tween().tween_property(portrait_rect, "modulate:a", 1.0, 0.2)
 		else:
+			# Se não houver retrato definido, esconde o componente suavemente
 			if portrait_rect.visible:
 				var portrait_tween = create_tween()
 				portrait_tween.tween_property(portrait_rect, "modulate:a", 0.0, 0.15)
 				portrait_tween.tween_callback(func(): portrait_rect.visible = false)
+	# ------------------------------------------------------
 
 	if text_label:
 		text_label.text = line.text

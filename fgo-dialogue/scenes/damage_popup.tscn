@@ -2,10 +2,9 @@
 
 [ext_resource type="Script" uid="uid://baeqw50w1c0g2" path="res://damage_popup.gd" id="1_m8tyv"]
 
-[node name="DamagePopup" type="Label" unique_id=1908456339]
-offset_right = 40.0
-offset_bottom = 40.0
-theme_override_font_sizes/font_size = 50
+[node name="DamagePopup" type="Label" unique_id=109936162]
+offset_right = 86.0
+offset_bottom = 69.0
 text = "999"
 horizontal_alignment = 1
 vertical_alignment = 1

@@ -83,11 +83,12 @@ func initialize_combat(data: CombatData) -> void:
 	# Conexões de Sinais
 	# Dentro de initialize_combat(data: CombatData) no combat_manager.gd
 	spawned_enemy.hp_changed.connect(_on_enemy_hp_changed)
-	spawned_enemy.hp_changed.connect(func(new_hp, max_hp, change):
-	# Como 'change' é negativo para dano (ex: -45), usamos abs() para exibir o número positivo na UI
-		if change < 0:
-			_trigger_enemy_damage_popup(abs(change), "PHYSICAL")
-)
+	
+	# 🛡️ BLINDAGEM: Comentamos o popup numérico antigo para não conflitar com o minimalismo de palavras!
+	#spawned_enemy.hp_changed.connect(func(new_hp, max_hp, change):
+		#if change < 0:
+			#_trigger_enemy_damage_popup(abs(change), "PHYSICAL")
+	#)
 
 	# Escuta as transformações para rodar VFX na UI Mobile
 	spawned_enemy.phase_changed.connect(_on_enemy_phase_changed)
@@ -219,6 +220,8 @@ func execute_hero_basic_attack() -> void:
 	if current_state == CombatState.HERO_TURN:
 		_finish_current_hero_turn()
 
+# Substitua inteiramente a função execute_hero_skill(skill: SkillData) por esta:
+
 ## Executes a hero skill, manages HP/MP costs, calculates damage, and targets status effects dynamically.
 func execute_hero_skill(skill: SkillData) -> void:
 	if input_blocked or current_state != CombatState.HERO_TURN:
@@ -230,84 +233,68 @@ func execute_hero_skill(skill: SkillData) -> void:
 	
 	# --- 🧠 SMT SYSTEM: COST CALCULATION & VALIDATION ---
 	if skill.element_type == "PHYSICAL":
-		# Physical skills cost a percentage of Maximum HP
 		var hp_cost: int = int(hero_state.get_max_hp() * (skill.mp_cost / 100.0))
-		
-		# SMT Rule: You cannot drop to 0 or negative HP just to pay a skill cost
 		if hero_state.current_hp <= hp_cost:
 			print("❌ [Combat] %s doesn't have enough HP to use %s! Cost: %d HP" % [hero_state.blueprint.character_name, skill.name, hp_cost])
-			input_blocked = false # Unblocks the UI so the player can choose another action
+			input_blocked = false 
 			return
-			
-		# Pays the HP cost
 		hero_state.modify_hp(-hp_cost)
 		print("🩸 [Combat] %s paid %d HP to cast %s." % [hero_state.blueprint.character_name, hp_cost, skill.name])
 		_update_hero_ui_display(hero_id)
-		
 	else:
-		# Magical skills (Agi, Bufu, Zio) cost a flat, common amount of MP
 		if hero_state.current_mp < skill.mp_cost:
 			print("❌ [Combat] %s doesn't have enough MP to use %s! Needs: %d MP" % [hero_state.blueprint.character_name, skill.name, skill.mp_cost])
 			input_blocked = false
 			return
-			
-		# Pays the MP cost
 		hero_state.modify_mp(-skill.mp_cost)
 		print("🔮 [Combat] %s paid %d MP to cast %s." % [hero_state.blueprint.character_name, skill.mp_cost, skill.name])
 		_update_hero_ui_display(hero_id)
 	# ----------------------------------------------------
 	
-	# Audio: Play casting sound if it exists
 	if skill.sound_cast:
 		AudioManager.play_sfx(skill.sound_cast)
 	
-	# Calculates base outgoing damage using the hero's dynamic attack getter (which automatically includes active buffs!)
 	var damage_base: int = int(hero_state.get_attack() * skill.damage_multiplier)
 	
-	# Envia o dano base puro para o monstro. 
-	# Toda a lógica de resistências e combos elementais (como MOLHADO + ELEC) acontece de forma
-	# 100% modular dentro do próprio 'receive_combat_damage' do EnemyState!
-	spawned_enemy.receive_combat_damage(damage_base, skill.element_type)
+	# 🌟 CORRIGIDO: Captura o resultado textual da rolagem oculta vinda do EnemyState
+	var combat_outcome: String = spawned_enemy.receive_combat_damage(damage_base, skill.element_type)
 	
-	# 🎯 MODULAR STATUS EFFECT TARGETING SYSTEM
-	if skill.status_to_apply and randf() <= skill.status_chance:
-	# 🌟 ADICIONE ESTA LINHA: Pega a duração salva no arquivo do status
+	# 🌟 NOVO: Instancia e dispara a label por palavra (Weakness!, Resist!, Hit!, Miss!) na cabeça do monstro
+	_trigger_enemy_damage_popup_text(combat_outcome, skill.element_type)
+	
+	# 🎯 MODULAR STATUS EFFECT TARGETING SYSTEM (Só aplica status se o ataque não deu "Miss!" ou "Immune!")
+	if combat_outcome != "Miss!" and combat_outcome != "Immune!" and skill.status_to_apply and randf() <= skill.status_chance:
 		var duration = skill.status_to_apply.default_duration
-	
+		
 		match skill.target_type:
 			SkillData.TargetType.ENEMY:
 				if spawned_enemy.has_method("apply_status"):
-				# Passa a variável 'duration' aqui
 					spawned_enemy.apply_status(skill.status_to_apply, duration)
 				
 			SkillData.TargetType.ALLY_ALL:
 				for p_id in active_party_ids:
 					var member = PlayerData.get_hero(p_id)
 					if member and member.has_method("apply_status"):
-						# Passa a variável 'duration' aqui também
 						member.apply_status(skill.status_to_apply, duration)
-			# Se você adicionou os novos tipos (EVERYONE e SELF) na sua Enum:
+						
 			SkillData.TargetType.EVERYONE:
 				if spawned_enemy.has_method("apply_status"):
-					spawned_enemy.apply_status(skill.status_to_apply, skill.status_duration)
+					spawned_enemy.apply_status(skill.status_to_apply, duration)
 				for p_id in active_party_ids:
 					var member = PlayerData.get_hero(p_id)
 					if member and member.has_method("apply_status"):
-						member.apply_status(skill.status_to_apply, skill.status_duration)
-			#
+						member.apply_status(skill.status_to_apply, duration)
+			
 			SkillData.TargetType.SELF:
 				if hero_state.has_method("apply_status"):
-					hero_state.apply_status(skill.status_to_apply, skill.status_duration)
+					hero_state.apply_status(skill.status_to_apply, duration)
 
-	# Visual Juice: Color flashes and screen shakes (Pop-up automatic via 'hp_changed' connection)
 	_flash_enemy_color(skill.element_type)
 	_trigger_enemy_shake(10.0)
 	
-	# Audio: Play impact sound if it exists
 	if skill.sound_impact:
 		AudioManager.play_sfx(skill.sound_impact)
 		
-	# Check for deaths or win/loss states before passing the turn
 	_run_state_based_actions()
 	
 	if current_state == CombatState.HERO_TURN:
@@ -599,29 +586,29 @@ func _trigger_enemy_damage_popup_text(outcome_text: String, _element_type: Strin
 	popup.text = outcome_text 
 	add_child(popup)
 	
+	# 🛡️ SEGURANÇA VISUAL: Força o popup a renderizar na frente de qualquer outra imagem ou Sprite!
+	popup.top_level = true
+	
 	popup.global_position = enemy_sprite.global_position + Vector2(enemy_sprite.size.x / 2, -30)
 	
-	# Modulação de cores dinâmica para leitura tátil mobile
 	match outcome_text:
 		"Miss!":
-			popup.modulate = Color(0.6, 0.6, 0.6) # Cinza fosco para erro
+			popup.modulate = Color(0.6, 0.6, 0.6) 
 		"Immune!":
-			popup.modulate = Color(0.4, 0.4, 0.5) # Cinza azulado escuro para imune
+			popup.modulate = Color(0.4, 0.4, 0.5) 
 		"Resist!":
-			popup.modulate = Color(0.5, 0.7, 1.0) # Azul claro/frio para resistido
+			popup.modulate = Color(0.5, 0.7, 1.0) 
 		"Critical Hit!":
-			popup.modulate = Color(1.0, 0.9, 0.1) # Amarelo estourado para Crítico
+			popup.modulate = Color(1.0, 0.9, 0.1) 
 		"Weakness!":
-			popup.modulate = Color(1.0, 0.4, 0.1) # Laranja incandescente para Fraqueza
+			popup.modulate = Color(1.0, 0.4, 0.1) 
 		_:
-			popup.modulate = Color.WHITE # Branco clássico para Hit normal
+			popup.modulate = Color.WHITE 
 			
-	# Animação suave de subida
 	var tween = create_tween().set_parallel(true)
 	tween.tween_property(popup, "global_position:y", popup.global_position.y - 50, 0.7)
 	tween.tween_property(popup, "modulate:a", 0.0, 0.7)
 	tween.chain().tween_callback(popup.queue_free)
-
 func _trigger_damage_popup(target_id: String, damage_amount: int, _element_type: String) -> void:
 	if not damage_popup_scene: return
 	var popup = damage_popup_scene.instantiate() as Label

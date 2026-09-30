@@ -6,11 +6,11 @@ var skills: Dictionary = {}
 # 🔒 Escreva aqui as strings com os IDs das habilidades que os inimigos têm no EnemyData.
 # O caminho aponta para o arquivo .tres original (o Godot cuida do resto na Web!)
 const SKILL_PATHS: Array[String] = [
-	"res://resources/skills/agi.tres",
-	"res://resources/skills/bufu.tres",
-	"res://resources/skills/dia.tres",
-	"res://resources/skills/rush.tres",
-	"res://resources/skills/tarukaja.tres"
+	"res://resources/skills/player_skills/agi.tres",
+	"res://resources/skills/player_skills/bufu.tres",
+	"res://resources/skills/player_skills/dia.tres",
+	"res://resources/skills/player_skills/rush.tres",
+	"res://resources/skills/player_skills/tarukaja.tres"
 ]
 
 func _ready() -> void:
