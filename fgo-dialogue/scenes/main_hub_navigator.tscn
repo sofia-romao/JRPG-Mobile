@@ -1,6 +1,6 @@
 [gd_scene format=3 uid="uid://dcmr55xb0myva"]
 
-[ext_resource type="Script" uid="uid://bvqtascmo4om0" path="res://scenes/main_hub_navigator.gd" id="1_7k3xj"]
+[ext_resource type="Script" uid="uid://bvqtascmo4om0" path="res://main_hub_navigator.gd" id="1_7k3xj"]
 
 [node name="MainHubNavigator" type="Control" unique_id=1771546233 node_paths=PackedStringArray("missions_button", "barracks_button")]
 layout_mode = 3

@@ -362,7 +362,7 @@ func _execute_enemy_attack() -> void:
 			AudioManager.play_sfx(used_skill.sound_cast)
 
 	if dialogue_label:
-		dialogue_label.text = "[center][b]%s[/b]: [b]%s[/b]![/center]" % [spawned_enemy.active_blueprint.name.to_upper(), action_name.to_upper()]
+		dialogue_label.text = "[center][b]%s[/b] USOU [b]%s[/b]![/center]" % [spawned_enemy.active_blueprint.name.to_upper(), action_name.to_upper()]
 
 	await get_tree().create_timer(0.6).timeout
 
