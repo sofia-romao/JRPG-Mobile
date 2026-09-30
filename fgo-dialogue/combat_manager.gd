@@ -214,6 +214,8 @@ func execute_hero_basic_attack() -> void:
 		_finish_current_hero_turn()
 
 # Dentro de combat_manager.gd
+
+## Executes a hero skill, manages HP/MP costs, calculates damage, and targets status effects dynamically.
 func execute_hero_skill(skill: SkillData) -> void:
 	if input_blocked or current_state != CombatState.HERO_TURN:
 		return
@@ -222,47 +224,91 @@ func execute_hero_skill(skill: SkillData) -> void:
 	var hero_id = active_party_ids[current_hero_index]
 	var hero_state = PlayerData.get_hero(hero_id)
 	
-	# --- CÁLCULO E VALIDAÇÃO DE CUSTOS (Mantido o design SMT original) ---
+	# --- 🧠 SMT SYSTEM: COST CALCULATION & VALIDATION ---
 	if skill.element_type == "PHYSICAL":
+		# Physical skills cost a percentage of Maximum HP
 		var hp_cost: int = int(hero_state.get_max_hp() * (skill.mp_cost / 100.0))
+		
+		# SMT Rule: You cannot drop to 0 or negative HP just to pay a skill cost
 		if hero_state.current_hp <= hp_cost:
-			print("❌ [Combat] %s doesn't have enough HP!" % hero_state.blueprint.character_name)
-			input_blocked = false
+			print("❌ [Combat] %s doesn't have enough HP to use %s! Cost: %d HP" % [hero_state.blueprint.character_name, skill.name, hp_cost])
+			input_blocked = false # Unblocks the UI so the player can choose another action
 			return
+			
+		# Pays the HP cost
 		hero_state.modify_hp(-hp_cost)
+		print("🩸 [Combat] %s paid %d HP to cast %s." % [hero_state.blueprint.character_name, hp_cost, skill.name])
 		_update_hero_ui_display(hero_id)
+		
 	else:
+		# Magical skills (Agi, Bufu, Zio) cost a flat, common amount of MP
 		if hero_state.current_mp < skill.mp_cost:
-			print("❌ [Combat] %s doesn't have enough MP!" % hero_state.blueprint.character_name)
+			print("❌ [Combat] %s doesn't have enough MP to use %s! Needs: %d MP" % [hero_state.blueprint.character_name, skill.name, skill.mp_cost])
 			input_blocked = false
 			return
+			
+		# Pays the MP cost
 		hero_state.modify_mp(-skill.mp_cost)
+		print("🔮 [Combat] %s paid %d MP to cast %s." % [hero_state.blueprint.character_name, skill.mp_cost, skill.name])
 		_update_hero_ui_display(hero_id)
-	# --------------------------------------------------------------------
+	# ----------------------------------------------------
 	
+	# Audio: Play casting sound if it exists
 	if skill.sound_cast:
 		AudioManager.play_sfx(skill.sound_cast)
 	
-	# Calcula o dano base puro do herói
+	# Calculates base outgoing damage using the hero's dynamic attack getter (which automatically includes active buffs!)
 	var damage_base: int = int(hero_state.get_attack() * skill.damage_multiplier)
 	
-	# 🧼 FAXINA AQUI: O CombatManager apenas envia o dano bruto. 
-	# Toda a lógica de combos (Molhado + Choque, Exausto + Físico) acontece modularmente 
-	# dentro do 'receive_combat_damage' que alteramos no passo anterior!
+	# Envia o dano base puro para o monstro. 
+	# Toda a lógica de resistências e combos elementais (como MOLHADO + ELEC) acontece de forma
+	# 100% modular dentro do próprio 'receive_combat_damage' do EnemyState!
 	spawned_enemy.receive_combat_damage(damage_base, skill.element_type)
 	
-	# 🧼 FAXINA AQUI: Aplicação de status puramente modular e genérica
+	# 🎯 MODULAR STATUS EFFECT TARGETING SYSTEM
 	if skill.status_to_apply and randf() <= skill.status_chance:
-		if spawned_enemy.has_method("apply_status"):
-			spawned_enemy.apply_status(skill.status_to_apply, skill.status_duration)
+		match skill.target_type:
+			SkillData.TargetType.ENEMY:
+				if spawned_enemy.has_method("apply_status"):
+					spawned_enemy.apply_status(skill.status_to_apply, skill.status_duration)
+					
+			SkillData.TargetType.ALLY_SINGLE:
+				# Nota: Caso use um buff de clique único em aliado, garanta que a sua UI mobile
+				# passe o 'target_hero_state' selecionado para esta linha.
+				# Como padrão seguro para o menu básico, aplica no próprio conjurador se não houver alvo.
+				var target_hero = PlayerData.get_hero(hero_id) 
+				if target_hero and target_hero.has_method("apply_status"):
+					target_hero.apply_status(skill.status_to_apply, skill.status_duration)
+					
+			SkillData.TargetType.ALLY_ALL:
+				# Loops through the entire active party to apply the status/buff
+				for p_id in active_party_ids:
+					var member = PlayerData.get_hero(p_id)
+					if member and member.has_method("apply_status"):
+						member.apply_status(skill.status_to_apply, skill.status_duration)
+						
+			# Se você adicionou os novos tipos (EVERYONE e SELF) na sua Enum:
+			SkillData.TargetType.EVERYONE:
+				if spawned_enemy.has_method("apply_status"):
+					spawned_enemy.apply_status(skill.status_to_apply, skill.status_duration)
+				for p_id in active_party_ids:
+					var member = PlayerData.get_hero(p_id)
+					if member and member.has_method("apply_status"):
+						member.apply_status(skill.status_to_apply, skill.status_duration)
+			#
+			SkillData.TargetType.SELF:
+				if hero_state.has_method("apply_status"):
+					hero_state.apply_status(skill.status_to_apply, skill.status_duration)
 
-	# Efeitos Visuais e Sonoros de Impacto normais da UI
+	# Visual Juice: Color flashes and screen shakes (Pop-up automatic via 'hp_changed' connection)
 	_flash_enemy_color(skill.element_type)
 	_trigger_enemy_shake(10.0)
 	
+	# Audio: Play impact sound if it exists
 	if skill.sound_impact:
 		AudioManager.play_sfx(skill.sound_impact)
 		
+	# Check for deaths or win/loss states before passing the turn
 	_run_state_based_actions()
 	
 	if current_state == CombatState.HERO_TURN:
@@ -664,3 +710,70 @@ func _update_enemy_status_icons() -> void:
 				texture_rect.modulate = Color(0.8, 0.5, 1.0) # Tom arroxeado para debuffs aplicados no Boss
 				
 			enemy_status_icons_container.add_child(texture_rect)
+## Executa a aplicação de um buff/status em um único herói selecionado via clique no card
+func execute_hero_single_support(target_hero: HeroState, skill: SkillData) -> void:
+	var caster_id = active_party_ids[current_hero_index]
+	var caster_state = PlayerData.get_hero(caster_id)
+	
+	# Cobra o custo de MP do conjurador (assim como na sua cura)
+	caster_state.modify_mp(-skill.mp_cost)
+	_update_hero_ui_display(caster_id)
+	
+	# 🌟 NOVO & MODULAR: Aplica o status effect diretamente no herói alvo clicado
+	if skill.status_to_apply and target_hero.has_method("apply_status"):
+		# Injeta o resource (.tres) e a duração vinda do SkillData
+		target_hero.apply_status(skill.status_to_apply, skill.status_duration)
+	
+	print("🔮 [Combat] %s applied %s to %s for %d turns." % [
+		caster_state.blueprint.character_name, 
+		skill.name, 
+		target_hero.blueprint.character_name, 
+		skill.status_duration
+	])
+	
+	# Mostra o popup flutuante de texto (ex: adaptando a label para o nome do buff se quiser)
+	_trigger_damage_popup(target_hero.blueprint.id, 0, "SUPPORT") 
+	
+	# Força o card do herói alvo a se redesenhar (o que já vai instanciar o novo ícone no ContentLayout!)
+	_update_hero_ui_display(target_hero.blueprint.id)
+	
+	if skill.sound_impact:
+		AudioManager.play_sfx(skill.sound_impact)
+		
+	# Finaliza o turno do herói atual de forma limpa
+	_finish_current_hero_turn()
+## ✅ PONTE DE SEGURANÇA: Direciona o clique do menu para a cura antiga ou o novo sistema de status
+func execute_hero_single_ally_action(target_hero: HeroState, skill: SkillData) -> void:
+	# 1. Se for uma magia de cura tradicional, roda o seu código antigo e original!
+	if skill.element_type == "HEAL":
+		execute_hero_single_heal(target_hero, skill)
+		return
+		
+	# 2. Se for uma habilidade com o novo sistema de status (Buffs, Suportes, Proteções)
+	var caster_id = active_party_ids[current_hero_index]
+	var caster_state = PlayerData.get_hero(caster_id)
+	
+	# Cobra o custo de MP do conjurador
+	caster_state.modify_mp(-skill.mp_cost)
+	_update_hero_ui_display(caster_id)
+	
+	# Aplica o status effect modular de forma segura
+	if skill.status_to_apply and target_hero.has_method("apply_status"):
+		target_hero.apply_status(skill.status_to_apply, skill.status_duration)
+		
+	print("🔮 [Support] %s applied %s to %s for %d turns." % [
+		caster_state.blueprint.character_name, 
+		skill.name, 
+		target_hero.blueprint.character_name, 
+		skill.status_duration
+	])
+	
+	# Dispara efeitos visuais e sonoros na UI mobile
+	_trigger_damage_popup(target_hero.blueprint.id, 0, "SUPPORT") 
+	_update_hero_ui_display(target_hero.blueprint.id)
+	
+	if skill.sound_impact:
+		AudioManager.play_sfx(skill.sound_impact)
+		
+	# Passa o turno de forma regulamentar
+	_finish_current_hero_turn()

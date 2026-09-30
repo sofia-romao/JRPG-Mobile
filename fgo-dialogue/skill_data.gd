@@ -2,7 +2,15 @@
 class_name SkillData
 extends Resource
 
-enum TargetType { ENEMY, ALLY_SINGLE, ALLY_ALL }
+# Dentro de skill_data.gd
+enum TargetType { 
+	ENEMY,          # Alvo: O monstro
+	ALLY_SINGLE,    # Alvo: Um herói específico da equipe
+	ALLY_ALL,       # Alvo: A equipe inteira de uma vez só
+	EVERYONE,       # 🌟 NOVO: Afeta o inimigo E todos os aliados ao mesmo tempo
+	SELF            # 🌟 NOVO: Aplica o status puramente no herói que conjurou
+}
+
 
 @export var id: String = ""
 @export var name: String = "Agi"

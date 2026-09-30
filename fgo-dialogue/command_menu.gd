@@ -145,10 +145,11 @@ func _open_alliance_target_menu() -> void:
 			btn.alignment = HorizontalAlignment.HORIZONTAL_ALIGNMENT_LEFT
 			skills_list_container.add_child(btn)
 			
-			# Executa a cura focada no herói escolhido
+			# ✅ PROTEGIDO: O menu entrega o herói e a skill para o CombatManager decidir
+			# se vai curar ou aplicar o buff modular!
 			btn.pressed.connect(func():
 				hide_commands()
-				combat_manager.execute_hero_single_heal(hero_state, _current_selected_skill)
+				combat_manager.execute_hero_single_ally_action(hero_state, _current_selected_skill)
 			)
 			
 	# Botão de voltar para a lista de skills

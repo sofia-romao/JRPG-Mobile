@@ -87,8 +87,19 @@ func get_max_hp() -> int:
 func get_max_mp() -> int:
 	return blueprint.max_mp if blueprint else 20
 
+# Dentro de hero_state.gd
+
 func get_attack() -> int:
-	return blueprint.attack if blueprint else 10
+	var base_attack = blueprint.attack if blueprint else 10
+	var final_attack = base_attack
+	
+	# Varre os status e buffs ativos para aplicar modificações multiplicativas
+	for effect in active_status.keys():
+		if effect.has_method("modify_attribute"):
+			final_attack = effect.modify_attribute("attack", final_attack)
+			
+	return final_attack
+
 
 func get_speed() -> int:
 	return blueprint.speed if blueprint else 5
