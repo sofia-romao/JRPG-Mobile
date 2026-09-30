@@ -267,26 +267,21 @@ func execute_hero_skill(skill: SkillData) -> void:
 	
 	# 🎯 MODULAR STATUS EFFECT TARGETING SYSTEM
 	if skill.status_to_apply and randf() <= skill.status_chance:
+	# 🌟 ADICIONE ESTA LINHA: Pega a duração salva no arquivo do status
+		var duration = skill.status_to_apply.default_duration
+	
 		match skill.target_type:
 			SkillData.TargetType.ENEMY:
 				if spawned_enemy.has_method("apply_status"):
-					spawned_enemy.apply_status(skill.status_to_apply, skill.status_duration)
-					
-			SkillData.TargetType.ALLY_SINGLE:
-				# Nota: Caso use um buff de clique único em aliado, garanta que a sua UI mobile
-				# passe o 'target_hero_state' selecionado para esta linha.
-				# Como padrão seguro para o menu básico, aplica no próprio conjurador se não houver alvo.
-				var target_hero = PlayerData.get_hero(hero_id) 
-				if target_hero and target_hero.has_method("apply_status"):
-					target_hero.apply_status(skill.status_to_apply, skill.status_duration)
-					
+				# Passa a variável 'duration' aqui
+					spawned_enemy.apply_status(skill.status_to_apply, duration)
+				
 			SkillData.TargetType.ALLY_ALL:
-				# Loops through the entire active party to apply the status/buff
 				for p_id in active_party_ids:
 					var member = PlayerData.get_hero(p_id)
 					if member and member.has_method("apply_status"):
-						member.apply_status(skill.status_to_apply, skill.status_duration)
-						
+						# Passa a variável 'duration' aqui também
+						member.apply_status(skill.status_to_apply, duration)
 			# Se você adicionou os novos tipos (EVERYONE e SELF) na sua Enum:
 			SkillData.TargetType.EVERYONE:
 				if spawned_enemy.has_method("apply_status"):
@@ -759,14 +754,16 @@ func execute_hero_single_ally_action(target_hero: HeroState, skill: SkillData) -
 	
 	# Aplica o status effect modular de forma segura
 	if skill.status_to_apply and target_hero.has_method("apply_status"):
-		target_hero.apply_status(skill.status_to_apply, skill.status_duration)
-		
-	print("🔮 [Support] %s applied %s to %s for %d turns." % [
-		caster_state.blueprint.character_name, 
-		skill.name, 
-		target_hero.blueprint.character_name, 
-		skill.status_duration
-	])
+	# 🌟 AJUSTE AQUI: Lê do default_duration do Resource
+		var duration = skill.status_to_apply.default_duration
+		target_hero.apply_status(skill.status_to_apply, duration)
+	
+		print("🔮 [Support] %s applied %s to %s for %d turns." % [
+	caster_state.blueprint.character_name, 
+	skill.name, 
+	target_hero.blueprint.character_name, # 👈 O nome do herói entra no terceiro %s
+	duration                              # 👈 A duração numérica entra no %d
+])
 	
 	# Dispara efeitos visuais e sonoros na UI mobile
 	_trigger_damage_popup(target_hero.blueprint.id, 0, "SUPPORT") 

@@ -57,6 +57,11 @@ func _on_attack_pressed() -> void:
 func _on_skills_menu_opened() -> void:
 	if main_buttons: main_buttons.hide()
 	if skills_sub_menu: skills_sub_menu.show()
+	
+	# 🛡️ BLINDAGEM: Aguarda o frame de renderização atual terminar
+	# Isso limpa o clique do dedo na tela e evita que a lista capture o input "fantasma"
+	await get_tree().process_frame
+	
 	_populate_skills_list()
 
 func _on_items_pressed() -> void:

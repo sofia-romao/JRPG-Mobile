@@ -9,7 +9,8 @@ const SKILL_PATHS: Array[String] = [
 	"res://resources/skills/agi.tres",
 	"res://resources/skills/bufu.tres",
 	"res://resources/skills/dia.tres",
-	"res://resources/skills/rush.tres"
+	"res://resources/skills/rush.tres",
+	"res://resources/skills/tarukaja.tres"
 ]
 
 func _ready() -> void:

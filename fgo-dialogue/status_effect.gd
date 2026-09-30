@@ -2,26 +2,25 @@
 class_name StatusEffect
 extends Resource
 
+@export_group("Identity")
 @export var id: String = ""
 @export var name: String = ""
 @export var icon: Texture2D
 @export var is_debuff: bool = true
 
-# --- Gatilhos Virtuais (Hooks) ---
-# Sobrescreva estes métodos nos efeitos específicos
+# 🌟 O ajuste definitivo que você está fazendo:
+# Agora a duração padrão nasce e vive aqui dentro do efeito!
+@export var default_duration: int = 3 
 
-## Chamado no momento exato em que o status é aplicado
+# --- Gatilhos Virtuais (Hooks) ---
 func on_apply(target: Object) -> void:
 	pass
 
-## Chamado no início/fim do turno (o antigo tick)
 func on_turn_tick(target: Object, elapsed_turn: int) -> void:
 	pass
 
-## Chamado quando o status expira naturalmente ou é limpo
 func on_remove(target: Object) -> void:
 	pass
 
-## Permite modificar o dano causado ou recebido (ex: Escudo ou Buff de Atque)
-func modify_damage(base_damage: int, is_inflicting: bool) -> int:
+func modify_damage(base_damage: int, element_type: String, is_inflicting: bool) -> int:
 	return base_damage

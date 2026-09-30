@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="EffectAttributeBuff" format=3 uid="uid://b8u3sdbyaig3f"]
+
+[ext_resource type="Script" uid="uid://bcpiqidf0t2dk" path="res://effect_attribute_buff.gd" id="1_06c1u"]
+[ext_resource type="Texture2D" uid="uid://hk2s6hpyna5a" path="res://icon_bravo.PNG" id="1_n3foa"]
+
+[resource]
+script = ExtResource("1_06c1u")
+id = "atk_UP"
+name = "atk UP"
+icon = ExtResource("1_n3foa")
+is_debuff = false
+metadata/_custom_type_script = "uid://bcpiqidf0t2dk"
