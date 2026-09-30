@@ -4,6 +4,9 @@ class_name MainController
 
 @export_category("Containers")
 @export var scene_container: Node
+@export_group("Web-Safe Core Resources")
+## Arraste os seus 3 arquivos .tres iniciais de heróis aqui pelo Inspector da cena Main!
+@export var starting_hero_resources: Array[HeroData] = []
 
 # --- SCENE PATHS ---
 const MAIN_MENU_PATH = "res://scenes/main_menu.tscn"
@@ -19,6 +22,10 @@ func _ready() -> void:
 	if scene_container == null:
 		push_error("Main: The 'scene_container' node was not assigned in the Inspector!")
 		return
+	# 🚀 O SEGREDO DA WEB: Injeta os arquivos carregados nativamente no Autoload global!
+	if PlayerData.has_method("initialize_roster_statically"):
+		PlayerData.initialize_roster_statically(starting_hero_resources)
+		
 	# Game starts mandatorily at Title Screen
 	_transition_to_scene(MAIN_MENU_PATH)
 
@@ -148,7 +155,7 @@ func _on_combat_finished(victory: bool) -> void:
 # --- NAVIGATOR CHANNELS ---
 
 func _on_back_to_hub_requested() -> void:
-	_transition_to_scene(HUB_NAVIGATOR_PATH)
+	pass
 
 func _on_missions_menu_requested() -> void:
 	_transition_to_scene(EXPLORATION_SCENE_PATH)

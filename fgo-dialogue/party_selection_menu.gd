@@ -110,16 +110,17 @@ func _on_hero_card_selected(hero_id: String) -> void:
 			
 	update_menu_ui()
 
+# No seu party_selection_menu.gd
 func _on_mission_card_selected(mission: MissionData) -> void:
-	if PlayerData.selected_mission_data == mission:
-		PlayerData.selected_mission_data = null
-	else:
-		PlayerData.selected_mission_data = mission
-		print("🎯 Menu: Mission selected: ", mission.title, ". Redirecting to Party Setup...")
-		switch_tab(0) # Joga o jogador direto para a seleção de heróis
-		return 
-		
-	update_menu_ui()
+	# Guarda a missão selecionada na memória global
+	PlayerData.selected_mission_data = mission
+	print("🎯 Missão Selecionada: ", mission.title, ". Indo para as Barracks...")
+	
+	# Busca o maestro do jogo (MainController) para trocar de cena fisicamente
+	var main = get_tree().root.get_node_or_null("MainController")
+	if main and main.has_method("_transition_to_scene"):
+		# Abre a cena das Barracks (HERO_DETAILS_PATH)
+		main._transition_to_scene(main.HERO_DETAILS_PATH)
 
 # --- INPUT E ALTERNÂNCIA DE ABAS ---
 

@@ -103,4 +103,4 @@ func _enter_game_world() -> void:
 	var main = get_tree().root.get_node_or_null("MainController")
 	if main and main.has_method("_transition_to_scene"):
 		# Usando o seu método original, mas apontando para o caminho do Hub!
-		main._transition_to_scene(main.HUB_NAVIGATOR_PATH)
+		main._transition_to_scene(main.EXPLORATION_SCENE_PATH)

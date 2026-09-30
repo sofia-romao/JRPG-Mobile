@@ -1,9 +1,14 @@
 [gd_scene format=3 uid="uid://dv3q36sendh72"]
 
 [ext_resource type="Script" uid="uid://cik0r7kimoruy" path="res://main.gd" id="1_0wfyh"]
+[ext_resource type="Script" uid="uid://bln4pkc2ot1or" path="res://hero_data.gd" id="2_tbgi4"]
+[ext_resource type="Resource" uid="uid://0gfwfgwo4p3f" path="res://resources/heroes/altria.tres" id="3_tefeu"]
+[ext_resource type="Resource" uid="uid://dqfrmdu21d70" path="res://resources/heroes/mash.tres" id="4_o6xl0"]
+[ext_resource type="Resource" uid="uid://c5752irf120xt" path="res://resources/heroes/mash2.tres" id="5_tipki"]
 
 [node name="MainController" type="Node" unique_id=1439246879 node_paths=PackedStringArray("scene_container")]
 script = ExtResource("1_0wfyh")
 scene_container = NodePath("SceneContainer")
+starting_hero_resources = Array[ExtResource("2_tbgi4")]([ExtResource("3_tefeu"), ExtResource("4_o6xl0"), ExtResource("5_tipki")])
 
 [node name="SceneContainer" type="Node" parent="." unique_id=1708542841]

@@ -5,8 +5,7 @@
 
 [resource]
 script = ExtResource("2_qonhh")
-id = "mash2"
-character_name = "Mash"
+id = "new_hero"
+character_name = "New Hero"
 avatar_icon = ExtResource("1_meik5")
-skill_list = Array[String](["dia"])
 metadata/_custom_type_script = "uid://bln4pkc2ot1or"

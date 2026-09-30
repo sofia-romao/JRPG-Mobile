@@ -3,114 +3,157 @@ extends Control
 class_name HeroDetailsMenu
 
 @export_category("Prefabs")
-@export var hero_card_prefab: PackedScene # Seu prefab de cartão de herói existente!
+@export var hero_card_prefab: PackedScene 
 
 @export_category("UI Panels")
-@export var selection_panel: Control      # Painel da lista inicial
-@export var details_panel: Control        # Painel íntimo de status e papo
+@export var selection_panel: Control
+@export var details_panel: Control
 
 @export_category("Selection UI Elements")
-@export var hero_list_container: VBoxContainer # Onde os cartões vão nascer
+@export var hero_list_container: VBoxContainer
+@export var deploy_button: Button
 
 @export_category("Details UI Components")
 @export var avatar_texture: TextureRect
+@export var chat_button: Button         # 💬 O BOTÃO MARAVILHOSO ESTÁ DE VOLTA!
 @export var name_label: Label
-@export var level_label: Label
 @export var stats_label: Label
 @export var skills_list_container: VBoxContainer
+@export var skin_list_container: HBoxContainer 
 
 @export_category("Dialogue Components")
 @export var dialogue_label: RichTextLabel
-@export var chat_button: Button
 @export var text_click_sfx: AudioStream 
 
 @export_category("Narrative Database")
-## hero_id (String) -> { "common": Array[String], "level_up": Dictionary }
+## hero_owner_id ("altria", "mash") -> { "common": Array[String], "level_up": Dictionary }
 @export var dialogue_database: Dictionary = {}
 
-var current_hero_state: HeroState
+var current_hero_owner: String = ""
 var _current_tween: Tween = null
 var _last_char_count: int = 0
 
 func _ready() -> void:
-	if chat_button:
-		chat_button.pressed.connect(_on_chat_button_pressed)
-		
-	# Inicializa mostrando a lista e escondendo os detalhes íntimos
 	if selection_panel: selection_panel.show()
 	if details_panel: details_panel.hide()
 	
-	# Popula a lista automática logo no primeiro frame
+	if deploy_button and not deploy_button.pressed.is_connected(_on_deploy_button_pressed):
+		deploy_button.pressed.connect(_on_deploy_button_pressed)
+		
+	# 💬 Conecta o clique do botão maravilhoso de conversa!
+	if chat_button and not chat_button.pressed.is_connected(_on_chat_button_pressed):
+		chat_button.pressed.connect(_on_chat_button_pressed)
+		
+	PlayerData.synchronize_active_party()
 	_populate_hero_selection_list()
-
-## 🆕 Varre a coleção salva do jogador e cria a lista física de cartões
+	_update_deploy_button_status()
+## Popula a lista inicial isolando os nós visuais das instâncias de cartões
 func _populate_hero_selection_list() -> void:
 	if not hero_list_container or not hero_card_prefab: return
 	
-	# Limpa cartões antigos por segurança
 	for child in hero_list_container.get_children():
 		child.queue_free()
-		
-	# Varre os heróis que o jogador possui no PlayerData
-	for hero_id in PlayerData.hero_collection:
-		var hero_state: HeroState = PlayerData.hero_collection[hero_id]
-		
-		# Instancia o seu cartão original
-		var new_card = hero_card_prefab.instantiate()
-		hero_list_container.add_child(new_card)
-		
-		# Inicializa o cartão usando a função dele (sem travas ou seleção de party)
-		if new_card.has_method("initialize_card"):
-			new_card.initialize_card(hero_id, hero_state, false)
 			
-		# Redireciona o clique do cartão para abrir a tela íntima deste herói!
-		if new_card.has_signal("card_clicked"):
-			new_card.card_clicked.connect(func(_id): open_hero_details(hero_state))
+	for hero_owner in PlayerData.active_kits:
+		var current_active_kit_id = PlayerData.active_kits[hero_owner]
+		var hero_state: HeroState = PlayerData.get_hero(current_active_kit_id)
+		
+		if hero_state and hero_state.blueprint:
+			var new_card = hero_card_prefab.instantiate()
+			hero_list_container.add_child(new_card)
+			
+			# 🚀 FORÇA ISOLAMENTO VISUAL: Injeta o texto direto nas propriedades do nó instanciado
+			# antes mesmo do initialize_card rodar, garantindo que o cache da UI seja quebrado!
+			if new_card.get("name_label") and new_card.name_label:
+				new_card.name_label.text = hero_state.blueprint.character_name
+				
+			if new_card.has_method("initialize_card"):
+				new_card.initialize_card(hero_owner, hero_state, false)
+				
+				# 💎 GARANTIA EXTRALIMPA: Força a sobrescrita do label após a inicialização nativa
+				if new_card.name_label:
+					new_card.name_label.text = hero_state.blueprint.character_name
+				
+			if new_card.has_signal("card_clicked"):
+				new_card.card_clicked.connect(func(owner_id): open_hero_details(owner_id))
+				
+	_update_deploy_button_status()
 
-## 🆕 Transiciona da lista para os detalhes íntimos do herói selecionado
-func open_hero_details(hero_state: HeroState) -> void:
-	current_hero_state = hero_state
+## Abre a ficha íntima carregando o kit ativo atual e montando o carrossel de skins
+func open_hero_details(hero_owner: String) -> void:
+	current_hero_owner = hero_owner
 	
-	# Alterna os painéis visualmente
 	if selection_panel: selection_panel.hide()
 	if details_panel: details_panel.show()
 	
-	_update_ui()
-	_populate_skills_list()
+	var active_kit_id = PlayerData.active_kits[hero_owner]
+	var hero_state = PlayerData.get_hero(active_kit_id)
+	
+	_update_ui_display(hero_state)
+	_populate_skin_selector_list()
 	_start_conversation()
 
-## Chamado pelo botão de voltar da sua tela íntima para retornar à lista de heróis
-func close_hero_details() -> void:
-	current_hero_state = null
-	if _current_tween: _current_tween.kill()
+## Popula o carrossel horizontal com todas as skins desbloqueadas daquele herói
+func _populate_skin_selector_list() -> void:
+	if not skin_list_container or not hero_card_prefab: return
 	
-	# Alterna de volta para a lista de seleção
-	if details_panel: details_panel.hide()
-	if selection_panel: selection_panel.show()
+	for child in skin_list_container.get_children():
+		child.queue_free()
+		
+	var unlocked_list: Array[String] = []
+	match current_hero_owner:
+		"altria": unlocked_list = PlayerData.unlocked_altria_kits
+		"mash": unlocked_list = PlayerData.unlocked_mash_kits
+		"hero3": unlocked_list = PlayerData.unlocked_hero3_kits
+		
+	for kit_id in unlocked_list:
+		var hero_state = PlayerData.get_hero(kit_id)
+		if not hero_state: continue
+		
+		var is_equipped = (PlayerData.active_kits[current_hero_owner] == kit_id)
+		
+		var new_card = hero_card_prefab.instantiate()
+		skin_list_container.add_child(new_card)
+		
+		if new_card.has_method("initialize_card"):
+			new_card.initialize_card(kit_id, hero_state, is_equipped)
+			
+		if new_card.has_signal("card_clicked"):
+			new_card.card_clicked.connect(func(chosen_kit_id):
+				PlayerData.active_kits[current_hero_owner] = chosen_kit_id
+				PlayerData.synchronize_active_party() 
+				
+				_update_ui_display(hero_state)
+				_populate_skin_selector_list()
+				_start_conversation()
+				_update_deploy_button_status() 
+			)
 
-# --- CORE DETAILS FUNCTIONS (Mantidas do seu código original) ---
-
-func _update_ui() -> void:
-	if not current_hero_state or not current_hero_state.blueprint: return
+func _update_ui_display(hero_state: HeroState) -> void:
+	if not hero_state or not hero_state.blueprint: return
+	var bp = hero_state.blueprint
 	
-	var bp = current_hero_state.blueprint
-	var current_level = current_hero_state.get_level() # 🔢 Puxa o nível calculado via função!
-	
+	if avatar_texture and bp.avatar_icon:
+		avatar_texture.texture = bp.avatar_icon
+		avatar_texture.modulate = Color(1.6, 1.6, 1.6, 1.0) 
+		var flash_tween = create_tween()
+		flash_tween.tween_property(avatar_texture, "modulate", Color.WHITE, 0.25)
+		
 	name_label.text = bp.character_name
-	avatar_texture.texture = bp.avatar_icon
-	level_label.text = "LV: %d" % current_level
 	
-	# Atualizado para usar suas funções nativas: get_max_hp, get_attack e get_speed
 	stats_label.text = "HP: %d/%d\nATK: %d\nSPD: %d" % [
-		current_hero_state.current_hp,
-		current_hero_state.get_max_hp(),
-		current_hero_state.get_attack(),
-		current_hero_state.get_speed()
+		hero_state.current_hp,
+		hero_state.get_max_hp(),
+		hero_state.get_attack(),
+		hero_state.get_speed()
 	]
-func _populate_skills_list() -> void:
+	
+	_populate_skills_list(hero_state)
+
+func _populate_skills_list(hero_state: HeroState) -> void:
 	for child in skills_list_container.get_children(): child.queue_free()
-	if not current_hero_state: return
-	for skill_id in current_hero_state.get_available_skills():
+	if not hero_state: return
+	for skill_id in hero_state.get_available_skills():
 		var skill_data: SkillData = SkillsDatabase.get_skill(skill_id)
 		if skill_data:
 			var label = Label.new()
@@ -118,44 +161,39 @@ func _populate_skills_list() -> void:
 			var cost_text = str(skill_data.mp_cost) + "% HP" if skill_data.element_type == "PHYSICAL" else str(skill_data.mp_cost) + " MP"
 			label.text = "%-12s %6s" % [skill_data.name, cost_text]
 
-## Selects the correct text line based on the hero's ID and level functions
 func _start_conversation() -> void:
-	if not current_hero_state or not current_hero_state.blueprint: return
+	if not current_hero_owner: return
 	
-	# Certifique-se de usar a String correspondente ao ID do seu herói na sua coleção
-	# (Se o seu blueprint tiver uma variável 'id', use bp.id. Caso contrário, use o id vindo da coleção)
-	var hero_id: String = ""
-	if current_hero_state.blueprint.get("id"):
-		hero_id = current_hero_state.blueprint.id
-	else:
-		# Fallback seguro caso você use o nome do blueprint como ID no dicionário
-		hero_id = current_hero_state.blueprint.character_name.to_lower().replace(" ", "_")
-		
-	var current_level: int = current_hero_state.get_level() # 🔢 Puxa o nível via função!
-	var chosen_text: String = "..." 
+	# Puxa o ID do Kit que está equipado no momento (ex: "altria", "altria_frost") [10]
+	var active_kit_id = PlayerData.active_kits[current_hero_owner]
+	var hero_state = PlayerData.get_hero(active_kit_id)
+	if not hero_state: return
 	
-	# 1. Checks if the hero exists in the database
-	if dialogue_database.has(hero_id) and dialogue_database[hero_id] is Dictionary:
-		var hero_data: Dictionary = dialogue_database[hero_id]
+	var chosen_text: String = "..."
+	
+	# 1. Verifica se o dono do herói ("altria", "mash") existe no banco de dados [10]
+	if dialogue_database.has(current_hero_owner) and dialogue_database[current_hero_owner] is Dictionary:
+		var hero_data: Dictionary = dialogue_database[current_hero_owner]
 		
-		# 2. PRIORITY: Looks for a special level up quote
-		if hero_data.has("level_up") and hero_data["level_up"] is Dictionary:
-			var level_up_dict: Dictionary = hero_data["level_up"]
-			if level_up_dict.has(current_level):
-				chosen_text = level_up_dict[current_level]
+		# 2. PRIORITY: Procura se existe uma fala específica para o KIT equipado!
+		if hero_data.has("kit_reactions") and hero_data["kit_reactions"] is Dictionary:
+			var kit_dict: Dictionary = hero_data["kit_reactions"]
+			if kit_dict.has(active_kit_id):
+				chosen_text = kit_dict[active_kit_id]
 				_display_typewriter_text(chosen_text)
 				return
 				
-		# 3. FALLBACK: Sorters a random common quote
+		# 3. FALLBACK: Se não tiver fala pro kit, sorteia uma frase comum do personagem [10]
 		if hero_data.has("common") and hero_data["common"] is Array:
 			var common_list: Array = hero_data["common"]
-			if not common_list.is_empty():
+			if not common_list.is_empty(): 
 				chosen_text = common_list.pick_random()
 	else:
-		print("⚠️ Warning: ID '%s' not found in Inspector dialogue_database." % hero_id)
-		chosen_text = "Hello! It is good to see you here." 
-
+		# Frase padrão caso o Inspetor esteja em branco [10]
+		chosen_text = "Ready to deploy, Commander. All systems calibrated." 
+		
 	_display_typewriter_text(chosen_text)
+
 func _display_typewriter_text(text: String) -> void:
 	if not dialogue_label: return
 	dialogue_label.text = text
@@ -176,16 +214,57 @@ func _check_and_play_sfx() -> void:
 			var last_char = current_text[current_chars - 1]
 			if last_char != " " and text_click_sfx: AudioManager.play_sfx(text_click_sfx)
 
+## 💬 Acionado quando o jogador clica fisicamente no ChatButton para ouvir uma nova frase!
 func _on_chat_button_pressed() -> void:
 	_start_conversation()
 
-# O botão físico de voltar da sua cena (BackButton) agora faz o seguinte:
+func close_hero_details() -> void:
+	current_hero_owner = ""
+	if _current_tween: _current_tween.kill()
+	if details_panel: details_panel.hide()
+	if selection_panel: selection_panel.show()
+	_populate_hero_selection_list()
+	_update_deploy_button_status()
+## Checa se os 3 heróis possuem kits válidos equipados e se há uma missão ativa
+func _update_deploy_button_status() -> void:
+	if not deploy_button: return
+	
+	if PlayerData.selected_mission_data == null:
+		deploy_button.text = "Select a Mission First"
+		deploy_button.disabled = true
+		return
+
+	# 🌐 PROTEÇÃO DA WEB: Checa se a chave salva na string existe de verdade dentro do dicionário físico!
+	var altria_ready: bool = PlayerData.active_kits.has("altria") and PlayerData.hero_collection.has(PlayerData.active_kits["altria"])
+	var mash_ready: bool = PlayerData.active_kits.has("mash") and PlayerData.hero_collection.has(PlayerData.active_kits["mash"])
+	var hero3_ready: bool = PlayerData.active_kits.has("hero3") and PlayerData.hero_collection.has(PlayerData.active_kits["hero3"])
+	
+	var party_complete: bool = altria_ready and mash_ready and hero3_ready
+
+	if party_complete:
+		deploy_button.text = "[ DEPLOY TEAM ]"
+		deploy_button.disabled = false
+	else:
+		deploy_button.text = "Equip All 3 Heroes"
+		deploy_button.disabled = true
+
+
 func _on_back_button_pressed() -> void:
-	# Se o painel de detalhes estiver aberto, voltar primeiro para a lista de heróis
 	if details_panel and details_panel.visible:
 		close_hero_details()
 	else:
-		# Se já estiver na lista, aí sim volta para a tela intermediária (Hub Navigator)
 		var main = get_tree().root.get_node_or_null("MainController")
 		if main and main.has_method("_transition_to_scene"):
-			main._transition_to_scene(main.HUB_NAVIGATOR_PATH)
+			main._transition_to_scene(main.EXPLORATION_SCENE_PATH)
+
+func _on_deploy_button_pressed() -> void:
+	if PlayerData.selected_mission_data != null:
+		var mission = PlayerData.selected_mission_data
+		PlayerData.active_mission_id = mission.id
+		
+		PlayerData.heal_active_party()
+		
+		print("🚀 Barracks: Deploying squad into mission: ", mission.title)
+		var main = get_tree().root.get_node_or_null("MainController")
+		if main and main.has_method("_on_exploration_requested_dialogue"):
+			main._on_exploration_requested_dialogue(mission.start_event)
