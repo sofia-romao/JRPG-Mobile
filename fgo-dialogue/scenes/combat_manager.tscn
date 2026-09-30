@@ -99,11 +99,15 @@ size_flags_vertical = 3
 [node name="PartyContainer" type="VBoxContainer" parent="UIArea/MainMobileLayout/PartyPanel" unique_id=1476951508]
 layout_mode = 2
 
-[node name="CommandMenu" type="PanelContainer" parent="UIArea/MainMobileLayout" unique_id=615045947 node_paths=PackedStringArray("combat_manager")]
+[node name="CommandMenu" type="PanelContainer" parent="UIArea/MainMobileLayout" unique_id=615045947 node_paths=PackedStringArray("combat_manager", "skill_info_popup", "skill_info_name", "skill_info_desc", "close_popup_button")]
 custom_minimum_size = Vector2(0, 200)
 layout_mode = 2
 script = ExtResource("3_iekp2")
 combat_manager = NodePath("../../..")
+skill_info_popup = NodePath("MenuContexts/SkillInfoPopup")
+skill_info_name = NodePath("MenuContexts/SkillInfoPopup/VBoxContainer/SkillNameLabel")
+skill_info_desc = NodePath("MenuContexts/SkillInfoPopup/VBoxContainer/SkillDescriptionLabel")
+close_popup_button = NodePath("MenuContexts/SkillInfoPopup/VBoxContainer/ClosePopupButton")
 
 [node name="MenuContexts" type="MarginContainer" parent="UIArea/MainMobileLayout/CommandMenu" unique_id=1352630335]
 layout_mode = 2
@@ -133,14 +137,27 @@ layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 
-[node name="ItemsSubMenu" type="ScrollContainer" parent="UIArea/MainMobileLayout/CommandMenu/MenuContexts" unique_id=2080177807]
+[node name="SkillInfoPopup" type="PanelContainer" parent="UIArea/MainMobileLayout/CommandMenu/MenuContexts" unique_id=1607804312]
+visible = false
 layout_mode = 2
 
-[node name="ItemsList" type="VBoxContainer" parent="UIArea/MainMobileLayout/CommandMenu/MenuContexts/ItemsSubMenu" unique_id=696869270]
-custom_minimum_size = Vector2(0, 200)
+[node name="VBoxContainer" type="VBoxContainer" parent="UIArea/MainMobileLayout/CommandMenu/MenuContexts/SkillInfoPopup" unique_id=85494558]
 layout_mode = 2
-size_flags_horizontal = 3
+
+[node name="SkillNameLabel" type="Label" parent="UIArea/MainMobileLayout/CommandMenu/MenuContexts/SkillInfoPopup/VBoxContainer" unique_id=1157606932]
+layout_mode = 2
+
+[node name="SkillDescriptionLabel" type="Label" parent="UIArea/MainMobileLayout/CommandMenu/MenuContexts/SkillInfoPopup/VBoxContainer" unique_id=1421085157]
+layout_mode = 2
+
+[node name="Spacer" type="Control" parent="UIArea/MainMobileLayout/CommandMenu/MenuContexts/SkillInfoPopup/VBoxContainer" unique_id=385593180]
+layout_mode = 2
 size_flags_vertical = 3
+
+[node name="ClosePopupButton" type="Button" parent="UIArea/MainMobileLayout/CommandMenu/MenuContexts/SkillInfoPopup/VBoxContainer" unique_id=45380283]
+layout_mode = 2
+size_flags_vertical = 3
+text = "[CLOSE]"
 
 [node name="DialogueBox" type="PanelContainer" parent="UIArea/MainMobileLayout/CommandMenu" unique_id=1263481209]
 custom_minimum_size = Vector2(0, 200)

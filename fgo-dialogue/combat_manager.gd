@@ -189,6 +189,9 @@ func _finish_enemy_turn() -> void:
 
 # --- AÇÕES DE ATAQUE ---
 
+# Dentro de combat_manager.gd
+
+## Executes the hero's basic physical attack, applying dynamic buffs and handling text popups.
 func execute_hero_basic_attack() -> void:
 	if input_blocked or current_state != CombatState.HERO_TURN:
 		return
@@ -197,23 +200,24 @@ func execute_hero_basic_attack() -> void:
 	var hero_id = active_party_ids[current_hero_index]
 	var hero_state = PlayerData.get_hero(hero_id)
 	
+	# Usa o getter dinâmico de ataque (que já calcula o bônus de 30% do Tarukaja automaticamente!)
 	var damage_dealt: int = hero_state.get_attack()
 	var element: String = "PHYSICAL"
 	
-	# 1. Aplica as alterações numéricas brutas
-	spawned_enemy.receive_combat_damage(damage_dealt, element)
-	_trigger_enemy_damage_popup(damage_dealt, element)
+	# 🌟 ATUALIZADO: Captura o resultado em texto ("Miss!", "Hit!", "Critical Hit!") vindo do monstro
+	var combat_outcome: String = spawned_enemy.receive_combat_damage(damage_dealt, element)
+	
+	# 🌟 NOVO: Dispara o popup textual correto no lugar do número antigo
+	_trigger_enemy_damage_popup_text(combat_outcome, element)
 	
 	_flash_enemy_color(element)
 	_trigger_enemy_shake(10.0)
-	# 2. Roda a State-Based Action para verificar mortes ANTES de avançar o turno
+	
+	# Roda a State-Based Action para verificar mortes antes de avançar o turno
 	_run_state_based_actions()
 	
-	# 3. Só continua o fluxo normal se a SBA não tiver decretado fim de jogo
 	if current_state == CombatState.HERO_TURN:
 		_finish_current_hero_turn()
-
-# Dentro de combat_manager.gd
 
 ## Executes a hero skill, manages HP/MP costs, calculates damage, and targets status effects dynamically.
 func execute_hero_skill(skill: SkillData) -> void:
@@ -355,45 +359,64 @@ func execute_hero_party_heal(skill: SkillData) -> void:
 	print("💚 [Combat] %s healed the entire party for %d HP." % [caster_state.blueprint.character_name, heal_amount])
 	_finish_current_hero_turn()
 
+## Executes the enemy turn, querying the boss AI brain for actions and targets dynamically.
 func _execute_enemy_attack() -> void:
 	if active_party_ids.is_empty():
 		_run_state_based_actions()
 		return
 
-	# 🛡️ TOTALMENTE GENÉRICO: O inimigo avisa se o BossPhaseData atual dele impede ações!
+	# 🛡️ STUN GUARDRAIL: Check if the boss phase prevents them from acting
 	if spawned_enemy.has_method("is_stunned") and spawned_enemy.is_stunned():
 		if dialogue_label:
-			dialogue_label.text = "[center][color=gray]%s está incapacitado na fase atual![/color][/center]" % spawned_enemy.active_blueprint.name
+			dialogue_label.text = "[center][color=gray]%s is incapacitated in this phase![/color][/center]" % spawned_enemy.active_blueprint.name
 		await get_tree().create_timer(1.2).timeout
 		_finish_enemy_turn()
 		return
 		
-	var random_index: int = randi() % active_party_ids.size()
-	var target_hero_id: String = active_party_ids[random_index]
-	var target_hero = PlayerData.get_hero(target_hero_id)
+	# 📦 STEP 1: Pack the battle context data for the AI to read safely
+	var combat_context = {
+		"boss_state": spawned_enemy,
+		"active_party_ids": active_party_ids.duplicate() # Sends a copy of live hero IDs
+	}
 	
+	# 🧠 STEP 2: Query the specialist AI brain from the current active blueprint
+	var ai_decision: Dictionary = { "skill": null, "target_id": "" }
+	
+	if spawned_enemy.active_blueprint and "ai_brain" in spawned_enemy.active_blueprint and spawned_enemy.active_blueprint.ai_brain:
+		# The Combat Manager delegates the decision to the decoupled Resource brain!
+		ai_decision = spawned_enemy.active_blueprint.ai_brain.choose_action(combat_context)
+	else:
+		# Fallback safe option in case a generic monster lacks an ai_brain file
+		ai_decision = {
+			"skill": null,
+			"target_id": active_party_ids.pick_random()
+		}
+		print("⚠️ [CombatManager] Warning: %s lacks an AI Brain resource. Using random attack." % spawned_enemy.active_blueprint.name)
+
+	# Extract data from the AI contract decision
+	var used_skill: SkillData = ai_decision.get("skill")
+	var target_hero_id: String = ai_decision.get("target_id")
+	
+	# Safety validation: If the AI failed to give a valid live target, grab a random fallback
+	if target_hero_id == "" or not active_party_ids.has(target_hero_id):
+		if not active_party_ids.is_empty():
+			target_hero_id = active_party_ids.pick_random()
+		else:
+			_finish_enemy_turn()
+			return
+
+	var target_hero = PlayerData.get_hero(target_hero_id)
 	if not target_hero or target_hero.current_hp <= 0:
 		_finish_enemy_turn()
 		return
 
-	var choice_roll = randf()
-	var used_skill: SkillData = null
-	
-	# Puxa as habilidades exclusivas do blueprint ativo na rodada
-	var available_skills = spawned_enemy.get_current_skill_list()
-
-	if not available_skills.is_empty() and choice_roll < 0.75:
-		var random_skill_id = available_skills.pick_random()
-		var candidate_skill = SkillsDatabase.get_skill(random_skill_id)
-		if candidate_skill and spawned_enemy.current_mp >= candidate_skill.mp_cost:
-			used_skill = candidate_skill
-
-	# Configuração dinâmica baseada na fase em runtime
+	# STEP 3: Setup dynamic execution variables based on the AI's choice
 	var damage_base = spawned_enemy.get_attack() 
 	var element = "PHYSICAL"
-	var action_name = "Ataque Básico"
+	var action_name = "Basic Attack"
 
 	if used_skill != null:
+		# Pays the real MP cost on the Boss data pool
 		spawned_enemy.modify_mp(-used_skill.mp_cost)
 		damage_base = int(spawned_enemy.get_attack() * used_skill.damage_multiplier)
 		element = used_skill.element_type
@@ -401,27 +424,36 @@ func _execute_enemy_attack() -> void:
 		if used_skill.sound_cast:
 			AudioManager.play_sfx(used_skill.sound_cast)
 
+	# Update the Mobile Narrative UI Box
 	if dialogue_label:
-		dialogue_label.text = "[center][b]%s[/b] USOU [b]%s[/b]![/center]" % [spawned_enemy.active_blueprint.name.to_upper(), action_name.to_upper()]
+		dialogue_label.text = "[center][b]%s[/b] USED [b]%s[/b] ON [b]%s[/b]![/center]" % [
+			spawned_enemy.active_blueprint.name.to_upper(), 
+			action_name.to_upper(),
+			target_hero.blueprint.character_name.to_upper()
+		]
 
 	await get_tree().create_timer(0.6).timeout
 
-	if used_skill != null:
-		target_hero.take_damage_combat(damage_base, element)
-	else:
-		target_hero.take_damage_combat(damage_base, "PHYSICAL")
+	# 🎲 STEP 4: Inflict damage and evaluate the hidden d100 roll inside the HeroState
+	# Captures the outcome text ("Miss!", "Critical Hit!", "Resist!", "Immune!", "Hit!")
+	var hero_outcome: String = target_hero.take_damage_combat(damage_base, element)
 		
-	_trigger_damage_popup(target_hero_id, damage_base, element)
+	# 🧼 TEXT POPUP GENERATION: Trigger text reaction over the specific hit hero card
+	_trigger_hero_damage_popup_text(target_hero_id, hero_outcome, element)
 	_trigger_screen_flash(element)
 	_trigger_screen_shake(15.0)
 
 	if used_skill != null and used_skill.sound_impact:
 		AudioManager.play_sfx(used_skill.sound_impact)
 
+	# Redraw the mobile UI card for the target hero instantly
 	_update_hero_ui_display(target_hero_id)
 	
-	if target_hero.current_hp <= 0:
-		active_party_ids.remove_at(random_index)
+	# SMT Death Tracker: Only remove the hero from active squad if they died and didn't evade ("Miss!")
+	if target_hero.current_hp <= 0 and hero_outcome != "Miss!":
+		var dead_idx = active_party_ids.find(target_hero_id)
+		if dead_idx != -1:
+			active_party_ids.remove_at(dead_idx)
 
 	await get_tree().create_timer(1.0).timeout 
 	_run_state_based_actions()
@@ -519,6 +551,38 @@ func _trigger_enemy_damage_popup(damage_amount: int, _element_type: String) -> v
 	var tween = create_tween().set_parallel(true)
 	tween.tween_property(popup, "global_position:y", popup.global_position.y - 40, 0.6)
 	tween.tween_property(popup, "modulate:a", 0.0, 0.6)
+	tween.chain().tween_callback(popup.queue_free)
+# Dentro de combat_manager.gd
+
+## Cria o popup de texto puro (Miss!, Hit!, Critical Hit!, Resist!, Immune!) perto do monstro
+func _trigger_enemy_damage_popup_text(outcome_text: String, _element_type: String) -> void:
+	if not damage_popup_scene or not enemy_sprite: return
+	
+	var popup = damage_popup_scene.instantiate() as Label
+	popup.text = outcome_text 
+	add_child(popup)
+	
+	popup.global_position = enemy_sprite.global_position + Vector2(enemy_sprite.size.x / 2, -30)
+	
+	# Modulação de cores dinâmica para leitura tátil mobile
+	match outcome_text:
+		"Miss!":
+			popup.modulate = Color(0.6, 0.6, 0.6) # Cinza fosco para erro
+		"Immune!":
+			popup.modulate = Color(0.4, 0.4, 0.5) # Cinza azulado escuro para imune
+		"Resist!":
+			popup.modulate = Color(0.5, 0.7, 1.0) # Azul claro/frio para resistido
+		"Critical Hit!":
+			popup.modulate = Color(1.0, 0.9, 0.1) # Amarelo estourado para Crítico
+		"Weakness!":
+			popup.modulate = Color(1.0, 0.4, 0.1) # Laranja incandescente para Fraqueza
+		_:
+			popup.modulate = Color.WHITE # Branco clássico para Hit normal
+			
+	# Animação suave de subida
+	var tween = create_tween().set_parallel(true)
+	tween.tween_property(popup, "global_position:y", popup.global_position.y - 50, 0.7)
+	tween.tween_property(popup, "modulate:a", 0.0, 0.7)
 	tween.chain().tween_callback(popup.queue_free)
 
 func _trigger_damage_popup(target_id: String, damage_amount: int, _element_type: String) -> void:
@@ -774,3 +838,33 @@ func execute_hero_single_ally_action(target_hero: HeroState, skill: SkillData) -
 		
 	# Passa o turno de forma regulamentar
 	_finish_current_hero_turn()
+## 🌟 NOVO: Cria o popup de texto puro (Miss!, Hit!, Weakness!) em cima do card do herói alvejado
+func _trigger_hero_damage_popup_text(target_id: String, outcome_text: String, _element_type: String) -> void:
+	if not damage_popup_scene: return
+	
+	var popup = damage_popup_scene.instantiate() as Label
+	popup.text = outcome_text # Injeta a palavra mágica
+	add_child(popup)
+	
+	var hero_ui_node = ui_heroes_container.get_node_or_null(target_id)
+	popup.global_position = hero_ui_node.global_position + Vector2(50, -20) if hero_ui_node else get_viewport().get_visible_rect().size / 2
+	
+	# Cores combinando com o padrão do monstro para o mobile
+	match outcome_text:
+		"Miss!":
+			popup.modulate = Color(0.6, 0.6, 0.6)
+		"Immune!":
+			popup.modulate = Color(0.4, 0.4, 0.5)
+		"Resist!":
+			popup.modulate = Color(0.5, 0.7, 1.0)
+		"Critical Hit!":
+			popup.modulate = Color(1.0, 0.9, 0.1)
+		"Weakness!":
+			popup.modulate = Color(1.0, 0.4, 0.1) # Cor de alerta para fraqueza atingida no herói!
+		_:
+			popup.modulate = Color.WHITE
+	
+	var tween = create_tween().set_parallel(true)
+	tween.tween_property(popup, "global_position:y", popup.global_position.y - 40, 0.6)
+	tween.tween_property(popup, "modulate:a", 0.0, 0.6)
+	tween.chain().tween_callback(popup.queue_free)

@@ -65,6 +65,9 @@ func get_max_mp() -> int:
 func get_attack() -> int: 
 	return active_blueprint.base_atk if active_blueprint else 10
 
+func get_speed() -> int: 
+	return active_blueprint.speed if active_blueprint else 15
+
 func get_current_skill_list() -> Array[String]: 
 	return active_blueprint.skill_list if active_blueprint else []
 
@@ -185,11 +188,22 @@ func _transform_into_phase(new_phase: BossPhaseData) -> void:
 	phase_changed.emit(active_blueprint.id)
 # --- RESOLUÇÃO DE COMBATE ---
 
-# Dentro de enemy_state.gd (Faça o equivalente em take_damage_combat no hero_state.gd)
-func receive_combat_damage(base_dmg: int, element_type: String) -> bool:
+## Receives damage, rolls hidden d100 for Evasion/Criticals, and returns the combat outcome string
+func receive_combat_damage(base_dmg: int, element_type: String) -> String:
 	if not active_blueprint: 
-		return false
+		return "Miss!"
 	
+	# 🎲 ROLAGEM OCULTA: Sorteia um número secreto de 1 a 100 nos bastidores
+	var hidden_roll = randi_range(1, 100)
+	
+	# --- 💨 1. CHECAGEM DE EVASÃO (Apenas para ataques do elemento PHYSICAL) ---
+	if element_type == "PHYSICAL":
+		# Se a rolagem oculta cair abaixo ou igual à velocidade do monstro, ele DESVIA!
+		if hidden_roll <= get_speed():
+			print("💨 [Combat Oculto] Rolou %d (Speed do monstro: %d) -> EVADED!" % [hidden_roll, get_speed()])
+			return "Miss!"
+			
+	# --- SE O ATAQUE CONECTAR: CALCULA O DANO BASE COM MULTIPLICADORES ELEMENTAIS ---
 	var multiplier: float = 1.0
 	match element_type:
 		"FIRE": multiplier = active_blueprint.res_fire
@@ -197,14 +211,33 @@ func receive_combat_damage(base_dmg: int, element_type: String) -> bool:
 		"ELEC": multiplier = active_blueprint.res_elec
 		"PHYSICAL": multiplier = active_blueprint.res_physical
 		
+	# --- 🔒 CHECAGEM DE IMUNIDADE ELEMENTAL ---
+	if multiplier == 0.0:
+		print("🛡️ [Combat Oculto] Alvo é imune ao elemento: %s" % element_type)
+		return "Immune!"
+		
 	var final_dmg: int = int(base_dmg * multiplier)
 	
-	# 🌟 NOVO: O próprio inimigo varre seus status ativos e altera o dano recebido
-	# repassando o elemento para o status calcular combos (como o MOLHADO + ELEC)
+	# Aplica modificadores dos status modulares (como o Buff/Debuff ou Escudo)
 	for effect in active_status.keys():
 		if effect.has_method("modify_damage"):
 			final_dmg = effect.modify_damage(final_dmg, element_type, false)
+			
+	# --- 🎯 2. CHECAGEM DO TEXTO DE RETORNO (CRÍTICO, FRAQUEZA OU RESISTÊNCIA) ---
+	var outcome_text = "Hit!"
 	
+	if element_type == "PHYSICAL" and hidden_roll >= 91:
+		# Rolou entre 91 e 100 no físico? CRITICAL! (Dano multiplicado por 1.5x)
+		final_dmg = int(final_dmg * 1.5)
+		outcome_text = "Critical Hit!"
+	elif multiplier > 1.0:
+		# Acertou fraqueza elemental em magia? WEAKNESS!
+		outcome_text = "Weakness!"
+	elif multiplier < 1.0:
+		# Multiplicador menor que 1 e maior que 0? RESIST!
+		outcome_text = "Resist!"
+		
+	# Reduz o HP real do Boss por trás dos panos
 	current_hp -= final_dmg
 	
 	# Mantém seus gatilhos polimórficos de fase rodando normalmente
@@ -215,8 +248,7 @@ func receive_combat_damage(base_dmg: int, element_type: String) -> bool:
 	}
 	evaluate_triggers("on_damage", context)
 	
-	return multiplier > 1.0
-
+	return outcome_text
 func modify_mp(amount: int) -> void:
 	var old_mp = current_mp
 	current_mp = clamp(current_mp + amount, 0, get_max_mp())

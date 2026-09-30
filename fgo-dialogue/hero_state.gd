@@ -102,7 +102,7 @@ func get_attack() -> int:
 
 
 func get_speed() -> int:
-	return blueprint.speed if blueprint else 5
+	return blueprint.speed if blueprint else 15
 	
 func get_available_skills() -> Array[String]:
 	return blueprint.skills if blueprint else []
@@ -116,29 +116,56 @@ func full_heal() -> void:
 ## Retorna TRUE se o inimigo hit a weakness (multiplier > 1.0).
 # Dentro de hero_state.gd
 
-## Calculates incoming combat damage, evaluates defensive status effects, and updates HP bounds.
-## Returns TRUE if the enemy hit a weakness (multiplier > 1.0).
-func take_damage_combat(damage_base: int, element_type: String) -> bool:
-	if not blueprint: return false
+## Calculates incoming combat damage, rolls a hidden d100 for evasion/criticals, and updates HP.
+## Returns the combat outcome string ("Miss!", "Critical Hit!", "Resist!", "Immune!", "Hit!")
+func take_damage_combat(damage_base: int, element_type: String) -> String:
+	if not blueprint: return "Miss!"
 	
+	# 🎲 ROLAGEM OCULTA: Sorteia um número secreto de 1 a 100 nos bastidores do herói
+	var hidden_roll = randi_range(1, 100)
+	
+	# --- 💨 1. CHECAGEM DE EVASÃO DO HERÓI (Apenas para ataques FÍSICOS do Boss) ---
+	if element_type == "PHYSICAL":
+		# get_speed() puxa a velocidade atualizada (já considerando buffs como Tarukaja se houver!)
+		if hidden_roll <= get_speed():
+			print("💨 [Hero Oculto] %s rolled %d (Speed: %d) -> EVADED Boss attack!" % [blueprint.character_name, hidden_roll, get_speed()])
+			return "Miss!"
+			
+	# --- CÁLCULO BRUTO DE MULTIPLICADORES ELEMENTAIS DA FICHA DO HERÓI ---
 	var multiplier: float = 1.0
 	match element_type:
 		"FIRE": multiplier = blueprint.res_fire
 		"ICE": multiplier = blueprint.res_ice
 		"ELEC": multiplier = blueprint.res_elec
 		"PHYSICAL": multiplier = blueprint.res_physical
-	
+		
+	# --- 🔒 CHECAGEM DE IMUNIDADE ELEMENTAL DO HERÓI ---
+	if multiplier == 0.0:
+		print("🛡️ [Hero Oculto] %s is immune to element: %s" % [blueprint.character_name, element_type])
+		return "Immune!"
+		
 	var final_damage: int = int(damage_base * multiplier)
 	
-	# 🌟 NOVO: O herói varre seus status ativos para aplicar modificadores modulares
-	# Isso permite que status como "SHIELD" reduzam o dano recebido automaticamente!
+	# Aplica os modificadores modulares dos status ativos no herói (como escudos)
 	for effect in active_status.keys():
 		if effect.has_method("modify_damage"):
 			final_damage = effect.modify_damage(final_damage, element_type, false)
+			
+	# --- 🎯 2. CHECAGEM DO TEXTO DE RETORNO DO HERÓI ---
+	var outcome_text = "Hit!"
 	
-	# Aplica o dano real computado pós-modificadores
+	# Se o Boss rolar de 91 a 100 no físico, o herói leva um Crítico (1.5x de dano)
+	if element_type == "PHYSICAL" and hidden_roll >= 91:
+		final_damage = int(final_damage * 1.5)
+		outcome_text = "Critical Hit!"
+	elif multiplier > 1.0:
+		outcome_text = "Weakness!"
+	elif multiplier < 1.0:
+		outcome_text = "Resist!"
+		
+	# Aplica o dano final reduzindo o HP real
 	modify_hp(-final_damage) 
 	
-	print("⚔️ [HeroState] %s received %d damage (%s). Elemental Multiplier: %f" % [blueprint.character_name, final_damage, element_type, multiplier])
+	print("⚔️ [HeroState] %s received %d damage (%s). Outcome: %s" % [blueprint.character_name, final_damage, element_type, outcome_text])
 	
-	return multiplier > 1.0
+	return outcome_text

@@ -15,7 +15,7 @@ enum TargetType {
 @export var id: String = ""
 @export var name: String = "Agi"
 @export var mp_cost: int = 4
-
+@export_multiline var description: String = "Causa dano elemental leve."
 @export_enum("PHYSICAL", "FIRE", "ICE", "ELEC", "HEAL", "SUPPORT") var element_type: String = "PHYSICAL"
 @export var target_type: TargetType = TargetType.ENEMY
 @export var damage_multiplier: float = 1.0

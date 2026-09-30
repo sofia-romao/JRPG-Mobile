@@ -12,6 +12,7 @@ extends Resource
 @export var base_hp: int = 100
 @export var base_mp: int = 30  
 @export var base_atk: int = 10
+@export var speed: int = 15
 
 @export_category("Resistências Elementais")
 @export var res_fire: float = 1.0   
@@ -21,3 +22,6 @@ extends Resource
 
 @export_category("Habilidades")
 @export var skill_list: Array[String] = []
+
+@export_group("AI Intelligence")
+@export var ai_brain: BossBrain = null
