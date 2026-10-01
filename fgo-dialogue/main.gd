@@ -10,7 +10,6 @@ class_name MainController
 
 # --- SCENE PATHS ---
 const MAIN_MENU_PATH = "res://scenes/main_menu.tscn"
-const HUB_NAVIGATOR_PATH = "res://scenes/main_hub_navigator.tscn" # 🆕 Sua tela intermediária
 const HERO_DETAILS_PATH = "res://scenes/hero_details_menu.tscn"   # 🆕 Seu alojamento de heróis
 const EXPLORATION_SCENE_PATH = "res://scenes/party_selection_menu.tscn"
 const DIALOGUE_SCENE_PATH = "res://scenes/dialogue_box.tscn"
@@ -87,7 +86,7 @@ func _on_dialogue_finished() -> void:
 		return
 		
 	# Volta para o Hub Central em vez de empurrar direto para as missões
-	_transition_to_scene(HUB_NAVIGATOR_PATH)
+	_transition_to_scene(EXPLORATION_SCENE_PATH)
 
 func _on_dialogue_triggered_event(event: GameEvent) -> void:
 	if event == null: return
@@ -135,20 +134,28 @@ func _on_combat_finished(victory: bool) -> void:
 		if SaveManager.has_method("save_game"):
 			SaveManager.save_game()
 		
+		# 🌟 Se houver um diálogo de história para tocar após a vitória (ex: cutscene de vitória)
 		if _current_combat_data and _current_combat_data.victory_event != null:
 			var post_combat_event = _current_combat_data.victory_event
 			_current_combat_data = null
+			
+			# Dá um respiro de 1 frame para desvincular os sinais antigos com segurança
+			await get_tree().process_frame
 			_on_dialogue_triggered_event(post_combat_event)
 			return
 			
+		# Se não houver diálogo pós-créditos, cura o time e volta direto para a navegação do Hub
 		PlayerData.heal_active_party()
 		_current_combat_data = null
 		
-		# 🗺️ MUDANÇA AQUI: Redireciona o jogador ao Hub Navigator após a vitória!
-		_transition_to_scene(HUB_NAVIGATOR_PATH)
+		await get_tree().process_frame
+		_transition_to_scene(EXPLORATION_SCENE_PATH)
 	else:
 		print("☠️ Main: Player defeated! Game Over logic goes here.")
 		_current_combat_data = null
+		# Se perder, você pode redirecionar para o menu principal ou hub
+		_transition_to_scene(MAIN_MENU_PATH)
+
 # --- NAVIGATOR CHANNELS ---
 
 func _on_back_to_hub_requested() -> void:

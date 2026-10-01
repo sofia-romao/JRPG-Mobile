@@ -509,19 +509,23 @@ func _run_state_based_actions() -> void:
 ## Executa o encerramento da cena de forma estrita e isolada
 func _on_combat_settled(victory: bool) -> void:
 	input_blocked = true
+	
 	if ui_command_buttons: 
-		ui_command_buttons.hide_commands()
+		ui_command_buttons.visible = false
+	if ui_dialogue_box:
+		ui_dialogue_box.visible = false
 		
 	AudioManager.stop_bgm(0.4)
 	print("🏁 [SBA System] Combat strictly settled. Victory: ", victory)
 	
-	# 💀 SE FOR VITÓRIA: Roda a animação de morte do monstro antes de fechar a tela!
 	if victory and enemy_sprite:
+		print("💀 [CombatManager] Iniciando esmaecimento do Boss...")
 		await _animate_enemy_defeat()
-		
+		print("💀 [CombatManager] Animação concluída.")
+
+	# Notifica a MainController para desinstanciar o combate
 	combat_finished.emit(victory)
 
-# --- SISTEMAS DE UI ---
 
 func _on_enemy_hp_changed(new_hp: int, max_hp: int, _change: int) -> void:
 	if enemy_hp_bar:
@@ -672,16 +676,16 @@ func _flash_hero_card_color(hero_id: String, element_type: String) -> void:
 ## Alterna de forma segura entre a interface do jogador e o anúncio de texto
 func _alternar_interface_combate(mostrar_comandos: bool, hero_id: String = "") -> void:
 	if mostrar_comandos:
-		# Esconde a sobreposição para revelar os botões por baixo
 		if ui_dialogue_box: 
 			ui_dialogue_box.hide()
 		if ui_command_buttons: 
-			ui_command_buttons.show_commands_for(hero_id)
+			# Se a caixa de diálogo já estava escondida quando fomos ativar os comandos,
+			# significa que é uma virada de turno comum (Novo Turno = true)
+			var novo_turno = (current_state == CombatState.HERO_TURN and not ui_dialogue_box.visible)
+			ui_command_buttons.show_commands_for(hero_id, novo_turno)
 	else:
-		# Mostra a caixa de diálogo por cima de tudo, cobrindo os botões e bloqueando cliques
 		if ui_dialogue_box: 
 			ui_dialogue_box.show()
-# Faz o monstro piscar intensamente na tela ao tomar um golpe do jogador
 
 # Faz a tela mobile inteira piscar com a cor do elemento do ataque recebido
 func _trigger_screen_flash(element_type: String) -> void:
@@ -724,35 +728,26 @@ func _trigger_enemy_shake(intensity: float) -> void:
 	
 	# Garante que o monstro volta exatamente para o seu lugar de origem no layout
 	tween.chain().tween_property(enemy_sprite, "position", original_pos, 0.04)
-## Anima o monstro deslizando para baixo e virando uma silhueta preta ao morrer
+## Anima o monstro desaparecendo suavemente (Fade-out seguro em containers)
 func _animate_enemy_defeat() -> void:
 	if not enemy_sprite: return
 	
-	# Cria um Tween paralelo (executa movimento e cor ao mesmo tempo)
 	var tween = create_tween().set_parallel(true)
 	
-	# 📐 Calcula o ponto final (a posição atual + a altura dele para sumir da tela)
-	var target_y = enemy_sprite.position.y + enemy_sprite.size.y + 50
-	
-	# ⏳ Configura as duas interpolações para durarem 0.6 segundos
-	# Move para baixo suavemente
-	tween.tween_property(enemy_sprite, "position:y", target_y, 0.6)\
-		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
+	# Modula a opacidade para 0 e escurece os canais RGB ao mesmo tempo
+	# Funciona perfeitamente independente das amarras do MarginContainer/PanelContainer!
+	tween.tween_property(enemy_sprite, "modulate:a", 0.0, 0.6).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	tween.tween_property(enemy_sprite, "modulate:r", 0.0, 0.6)
+	tween.tween_property(enemy_sprite, "modulate:g", 0.0, 0.6)
+	tween.tween_property(enemy_sprite, "modulate:b", 0.0, 0.6)
 		
-	# Modula para o preto absoluto (Sombra)
-	tween.tween_property(enemy_sprite, "modulate", Color(0, 0, 0, 1.0), 0.6)\
-		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
-		
-	# Aguarda o Tween terminar completamente antes de liberar a linha de execução
 	await tween.finished
-
+	print("🎬 [Juice Visual] Inimigo totalmente invisível.")
 ## Executa a mudança visual do Boss quando ele sofre mutação de blueprint via BossPhaseData
 func _on_enemy_phase_changed(new_blueprint_id: String) -> void:
 	if not enemy_sprite or not spawned_enemy: return
 	
-	# 🌟 SEGURANÇA DE DESIGN: Bloqueia o input para o jogador não clicar em nada durante o anúncio
 	input_blocked = true
-	
 	enemy_sprite.texture = spawned_enemy.get_current_sprite()
 	
 	_flash_enemy_color("PHYSICAL")
@@ -764,12 +759,11 @@ func _on_enemy_phase_changed(new_blueprint_id: String) -> void:
 		dialogue_label.text = "[center][b][color=yellow]⚠️ ADVERTÊNCIA: O INIMIGO MUDOU DE FORMA! -> %s ⚠️[/color][/b][/center]" % spawned_enemy.active_blueprint.name.to_upper()
 		
 		await get_tree().create_timer(1.5).timeout
-		
-		# 🌟 Libera o input de forma sincronizada apenas após o término do anúncio visual
 		input_blocked = false
 		
 		if current_state == CombatState.HERO_TURN:
 			var active_hero_id = active_party_ids[current_hero_index]
+			# 🌟 O FALSE AQUI impede o menu de resetar na mudança de fase do Boss
 			_alternar_interface_combate(true, active_hero_id)
 
 ## Clears and reconstructs status effect icons for the Boss on the main HUD

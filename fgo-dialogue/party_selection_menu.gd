@@ -11,21 +11,14 @@ enum MenuTab { HEROES, MISSIONS }
 @export_category("UI Nodes")
 @export var grid_container: GridContainer
 @export var action_button: Button 
-@export var tab_heroes_button: Button
-@export var tab_missions_button: Button
+
 
 var current_tab: MenuTab = MenuTab.HEROES
 var available_missions: Dictionary = {} 
 @export var mission_resources: Array[MissionData] = []
 func _ready() -> void:
 	_load_missions_from_folder()
-	
-	if tab_heroes_button:
-		tab_heroes_button.pressed.connect(func(): switch_tab(0)) 
-		
-	if tab_missions_button:
-		tab_missions_button.pressed.connect(func(): switch_tab(1)) 
-	
+
 	if action_button and not action_button.pressed.is_connected(_on_action_button_pressed):
 		action_button.pressed.connect(_on_action_button_pressed)
 		
@@ -162,4 +155,4 @@ func _load_missions_from_folder() -> void:
 func _on_back_button_pressed() -> void:
 	var main = get_tree().root.get_node_or_null("MainController")
 	if main and main.has_method("_transition_to_scene"):
-		main._transition_to_scene(main.HUB_NAVIGATOR_PATH)
+		main._transition_to_scene(main.HERO_DETAILS_PATH)

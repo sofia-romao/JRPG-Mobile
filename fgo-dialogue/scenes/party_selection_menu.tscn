@@ -4,10 +4,9 @@
 [ext_resource type="PackedScene" uid="uid://cavqlxggfvlb1" path="res://scenes/hero_selection_card.tscn" id="2_7xtmb"]
 [ext_resource type="PackedScene" uid="uid://dbtxuhojfjj8q" path="res://scenes/mission_card.tscn" id="3_wpd0i"]
 [ext_resource type="Script" uid="uid://6ulkprshou6x" path="res://mission_data.gd" id="4_arsrb"]
-[ext_resource type="Resource" uid="uid://byri7tqs2rp5l" path="res://resources/missions/jack_frost_test_mission.tres" id="5_ucnai"]
 [ext_resource type="Resource" uid="uid://b58oxcytcjh3x" path="res://resources/missions/barghest_test_mission.tres" id="6_ucnai"]
 
-[node name="PartySelectionMenu" type="Control" unique_id=928408070 node_paths=PackedStringArray("grid_container", "action_button", "tab_heroes_button", "tab_missions_button")]
+[node name="PartySelectionMenu" type="Control" unique_id=928408070 node_paths=PackedStringArray("grid_container", "action_button")]
 custom_minimum_size = Vector2(400, 500)
 layout_mode = 3
 anchors_preset = 15
@@ -20,9 +19,7 @@ hero_card_prefab = ExtResource("2_7xtmb")
 mission_card_prefab = ExtResource("3_wpd0i")
 grid_container = NodePath("ScrollContainer/HeroGrid")
 action_button = NodePath("ActionButton")
-tab_heroes_button = NodePath("HBoxContainer/TabHeroesButton")
-tab_missions_button = NodePath("HBoxContainer/TabMissionsButton")
-mission_resources = Array[ExtResource("4_arsrb")]([ExtResource("5_ucnai"), ExtResource("6_ucnai")])
+mission_resources = Array[ExtResource("4_arsrb")]([ExtResource("6_ucnai")])
 
 [node name="Control" type="Control" parent="." unique_id=603948743]
 custom_minimum_size = Vector2(0, 100)
@@ -52,40 +49,19 @@ layout_mode = 2
 
 [node name="ActionButton" type="Button" parent="." unique_id=2121624718]
 layout_mode = 0
-offset_left = 353.0
-offset_top = 634.0
-offset_right = 506.0
-offset_bottom = 753.0
+offset_left = 366.0
+offset_top = 823.0
+offset_right = 519.0
+offset_bottom = 942.0
 text = "START"
 
 [node name="BackButton" type="Button" parent="." unique_id=1209156463]
 layout_mode = 0
-offset_left = 24.0
-offset_top = 632.0
-offset_right = 177.0
-offset_bottom = 751.0
+offset_left = 17.0
+offset_top = 823.0
+offset_right = 170.0
+offset_bottom = 942.0
 text = "BACK"
-
-[node name="HBoxContainer" type="HBoxContainer" parent="." unique_id=948253854]
-custom_minimum_size = Vector2(0, 100)
-layout_mode = 1
-anchors_preset = 10
-anchor_right = 1.0
-offset_left = -1.875
-offset_top = 824.9063
-offset_right = -1.875
-offset_bottom = 924.9063
-grow_horizontal = 2
-
-[node name="TabHeroesButton" type="Button" parent="HBoxContainer" unique_id=440675371]
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Party"
-
-[node name="TabMissionsButton" type="Button" parent="HBoxContainer" unique_id=1289995794]
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Missions"
 
 [connection signal="pressed" from="ActionButton" to="." method="_on_action_button_pressed"]
 [connection signal="pressed" from="BackButton" to="." method="_on_back_button_pressed"]

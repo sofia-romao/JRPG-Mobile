@@ -53,23 +53,25 @@ func mostrar_menu_principal() -> void:
 	if main_buttons: main_buttons.show()
 	if skills_sub_menu: skills_sub_menu.hide()
 
-func show_commands_for(hero_id: String) -> void:
-	print("ℹ️ [DEBUG-UI] 'show_commands_for()' chamada para o herói: ", hero_id)
+func show_commands_for(hero_id: String, is_new_turn: bool = true) -> void:
+	print("ℹ️ [DEBUG-UI] 'show_commands_for()' chamada para o herói: ", hero_id, " | Novo Turno: ", is_new_turn)
 	
 	# 1. Atualiza a identidade visual do herói atual
 	var hero_state = PlayerData.get_hero(hero_id)
 	if hero_state and hero_state.blueprint:
 		modulate = hero_state.blueprint.theme_color
 	
-	# 2. DESIGN PROFISSIONAL: Se o submenu de skills já estiver aberto e visível,
-	# nós NÃO destruímos a navegação do jogador. Apenas atualizamos a lista de dados de forma limpa.
-	if skills_sub_menu and skills_sub_menu.visible:
-		print("ℹ️ [DEBUG-UI] Herói atualizado com menu de skills aberto. Sincronizando dados...")
-		_populate_skills_list()
-	else:
-		# Se o menu estava fechado ou no estado inicial, abre o menu principal normalmente
+	# 2. DESIGN PROFISSIONAL: Se for uma virada de turno real, reseta para o início.
+	# Se for apenas um update residual no meio do turno (ex: chefe mudando de fase),
+	# mantém a janela aberta e apenas atualiza os dados na tela.
+	if is_new_turn:
 		mostrar_menu_principal()
-
+	else:
+		if skills_sub_menu and skills_sub_menu.visible:
+			print("ℹ️ [DEBUG-UI] Dados atualizados no meio do turno. Repopulando skills...")
+			_populate_skills_list()
+		else:
+			mostrar_menu_principal()
 
 func hide_commands() -> void:
 	print("ℹ️ [DEBUG-UI] 'hide_commands()' executada.")

@@ -5,6 +5,7 @@
 [ext_resource type="Resource" uid="uid://bq3ypfvrj8c8c" path="res://resources/combat_encounter/barghest_boss_fight.tres" id="3_slj0v"]
 [ext_resource type="Script" uid="uid://ddx8q47y5l7w7" path="res://story_line.gd" id="4_flw8r"]
 [ext_resource type="Script" uid="uid://nld3nwsy6uln" path="res://game_event.gd" id="5_fa324"]
+[ext_resource type="Resource" uid="uid://dhxqjm2dei8by" path="res://resources/dialogue_sprites_characters/o_EX.tres" id="6_slj0v"]
 
 [sub_resource type="Resource" id="Resource_m6vig"]
 script = ExtResource("5_fa324")
@@ -14,25 +15,43 @@ metadata/_custom_type_script = "uid://nld3nwsy6uln"
 
 [sub_resource type="Resource" id="Resource_n13rq"]
 script = ExtResource("2_fnc3l")
-choice_text = "ENGAGE"
+choice_text = "CUIDADO! ELE TÁ DOIDO!"
 trigger_game_event = SubResource("Resource_m6vig")
 metadata/_custom_type_script = "uid://dch8afiewdldy"
 
 [sub_resource type="Resource" id="Resource_bv72m"]
 script = ExtResource("4_flw8r")
-text = "Engaging the enemy!"
+character = ExtResource("6_slj0v")
+text = "Por que você não me ama?"
+metadata/_custom_type_script = "uid://ddx8q47y5l7w7"
+
+[sub_resource type="Resource" id="Resource_8ak66"]
+script = ExtResource("4_flw8r")
+character = ExtResource("6_slj0v")
+text = "AAAH!"
+shake_screen = true
+flash_screen = Color(1, 0, 0, 1)
+metadata/_custom_type_script = "uid://ddx8q47y5l7w7"
+
+[sub_resource type="Resource" id="Resource_51awt"]
+script = ExtResource("4_flw8r")
+character = ExtResource("6_slj0v")
+expression = 3
+text = "SE EU NÃO POSSO TE TER, NINGUÉM VAI!"
+shake_screen = true
+flash_screen = Color(1, 0, 0, 1)
 metadata/_custom_type_script = "uid://ddx8q47y5l7w7"
 
 [sub_resource type="Resource" id="Resource_0mgq3"]
 script = ExtResource("5_fa324")
-dialogue_lines = Array[ExtResource("4_flw8r")]([SubResource("Resource_bv72m")])
+dialogue_lines = Array[ExtResource("4_flw8r")]([SubResource("Resource_bv72m"), SubResource("Resource_8ak66"), SubResource("Resource_51awt")])
 choices = Array[ExtResource("2_fnc3l")]([SubResource("Resource_n13rq")])
 metadata/_custom_type_script = "uid://nld3nwsy6uln"
 
 [resource]
 script = ExtResource("1_p8kcs")
 id = "barghest_mission"
-title = "Defeat Barghest"
-description = "Barghest hates Altria! Defeat her!"
+title = "Quem é esse?"
+description = "Um esquisitão se aproxima. Ele diz te conhecer. "
 start_event = SubResource("Resource_0mgq3")
 metadata/_custom_type_script = "uid://6ulkprshou6x"
