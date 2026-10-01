@@ -750,23 +750,27 @@ func _animate_enemy_defeat() -> void:
 func _on_enemy_phase_changed(new_blueprint_id: String) -> void:
 	if not enemy_sprite or not spawned_enemy: return
 	
-	# 1. Atualiza visualmente o sprite usando o getter seguro do EnemyState
+	# 🌟 SEGURANÇA DE DESIGN: Bloqueia o input para o jogador não clicar em nada durante o anúncio
+	input_blocked = true
+	
 	enemy_sprite.texture = spawned_enemy.get_current_sprite()
 	
-	# 2. Juice Visual de Impacto (Estilo SMT/Monster Hunter)
-	_flash_enemy_color("PHYSICAL") # Dá um clarão estourado HDR no monstro
-	_trigger_enemy_shake(25.0)     # Sacode o monstro fortemente pelo urro da transformação
-	_trigger_screen_shake(15.0)    # Faz a tela mobile inteira tremer
+	_flash_enemy_color("PHYSICAL")
+	_trigger_enemy_shake(25.0)
+	_trigger_screen_shake(15.0)
 	
-	# 3. Anúncio textual dramático na caixa de diálogos com o nome do novo EnemyData
 	if dialogue_label:
 		_alternar_interface_combate(false)
 		dialogue_label.text = "[center][b][color=yellow]⚠️ ADVERTÊNCIA: O INIMIGO MUDOU DE FORMA! -> %s ⚠️[/color][/b][/center]" % spawned_enemy.active_blueprint.name.to_upper()
+		
 		await get_tree().create_timer(1.5).timeout
+		
+		# 🌟 Libera o input de forma sincronizada apenas após o término do anúncio visual
+		input_blocked = false
+		
 		if current_state == CombatState.HERO_TURN:
 			var active_hero_id = active_party_ids[current_hero_index]
 			_alternar_interface_combate(true, active_hero_id)
-# Dentro de combat_manager.gd
 
 ## Clears and reconstructs status effect icons for the Boss on the main HUD
 func _update_enemy_status_icons() -> void:

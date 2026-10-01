@@ -20,7 +20,6 @@ metadata/_custom_type_script = "uid://dch8afiewdldy"
 
 [sub_resource type="Resource" id="Resource_bv72m"]
 script = ExtResource("4_flw8r")
-character_name = "Altria"
 text = "Engaging the enemy!"
 metadata/_custom_type_script = "uid://ddx8q47y5l7w7"
 

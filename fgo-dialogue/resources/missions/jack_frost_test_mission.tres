@@ -20,7 +20,6 @@ metadata/_custom_type_script = "uid://dch8afiewdldy"
 
 [sub_resource type="Resource" id="Resource_hkp0v"]
 script = ExtResource("3_nv0k1")
-character_name = "Mash"
 text = "Senpai, a hostile presence is blocking the server room!"
 metadata/_custom_type_script = "uid://ddx8q47y5l7w7"
 

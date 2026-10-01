@@ -2,24 +2,24 @@
 
 [ext_resource type="Script" uid="uid://db467t75ihaqi" path="res://combat_manager.gd" id="1_w318q"]
 [ext_resource type="PackedScene" uid="uid://772p2rwij28s" path="res://scenes/damage_popup.tscn" id="2_iekp2"]
-[ext_resource type="Texture2D" uid="uid://bwi77x5m5uiut" path="res://icon.svg" id="2_yvt8h"]
 [ext_resource type="Script" uid="uid://2qf1pi0robua" path="res://command_menu.gd" id="3_iekp2"]
+[ext_resource type="Texture2D" uid="uid://culjr38j35e6s" path="res://resources/enemies/barghest_data/o EX.png" id="4_hkp0v"]
 [ext_resource type="PackedScene" uid="uid://dtka1msgfngt8" path="res://scenes/hero_status_card.tscn" id="4_iekp2"]
 
 [node name="CombatManager" type="Node" unique_id=1214775926 node_paths=PackedStringArray("enemy_sprite", "background_texture", "ui_heroes_container", "ui_command_buttons", "enemy_hp_bar", "dialogue_label", "ui_dialogue_box", "visual_area_node", "screen_flash_effect", "enemy_status_icons_container")]
 script = ExtResource("1_w318q")
 damage_popup_scene = ExtResource("2_iekp2")
 hero_status_card_prefab = ExtResource("4_iekp2")
-enemy_sprite = NodePath("VisualArea/EnemySprite")
+enemy_sprite = NodePath("VisualArea/PanelContainer/EnemySprite")
 background_texture = NodePath("VisualArea/BackgroundTexture")
 ui_heroes_container = NodePath("UIArea/MainMobileLayout/PartyPanel/PartyContainer")
 ui_command_buttons = NodePath("UIArea/MainMobileLayout/CommandMenu")
-enemy_hp_bar = NodePath("VisualArea/EnemySprite/EnemyHPBar")
+enemy_hp_bar = NodePath("VisualArea/PanelContainer/EnemySprite/HBoxContainer/EnemyHPBar")
 dialogue_label = NodePath("UIArea/MainMobileLayout/CommandMenu/DialogueBox/DialogueLabel")
 ui_dialogue_box = NodePath("UIArea/MainMobileLayout/CommandMenu/DialogueBox")
 visual_area_node = NodePath("VisualArea")
 screen_flash_effect = NodePath("UIArea/ScreenFlashEffect")
-enemy_status_icons_container = NodePath("VisualArea/EnemySprite/EnemyStatusIconsContainer")
+enemy_status_icons_container = NodePath("VisualArea/PanelContainer/EnemySprite/HBoxContainer/EnemyStatusIconsContainer")
 
 [node name="AudioStreamPlayer" type="AudioStreamPlayer" parent="." unique_id=1230456112]
 
@@ -40,32 +40,29 @@ grow_horizontal = 2
 grow_vertical = 2
 stretch_mode = 5
 
-[node name="EnemySprite" type="TextureRect" parent="VisualArea" unique_id=806145300]
-layout_mode = 1
-anchors_preset = 5
-anchor_left = 0.5
-anchor_right = 0.5
-offset_left = -60.30963
-offset_top = 127.96977
-offset_right = 67.69037
-offset_bottom = 255.96977
-grow_horizontal = 2
-texture = ExtResource("2_yvt8h")
-
-[node name="EnemyHPBar" type="ProgressBar" parent="VisualArea/EnemySprite" unique_id=1202804541]
+[node name="PanelContainer" type="MarginContainer" parent="VisualArea" unique_id=1798230834]
 layout_mode = 0
-offset_left = -35.0
-offset_top = -37.0
-offset_right = 158.0
-offset_bottom = -10.0
+offset_right = 547.0
+offset_bottom = 629.0
 
-[node name="EnemyStatusIconsContainer" type="HBoxContainer" parent="VisualArea/EnemySprite" unique_id=560258590]
-custom_minimum_size = Vector2(120, 40)
+[node name="EnemySprite" type="TextureRect" parent="VisualArea/PanelContainer" unique_id=806145300]
+layout_mode = 2
+texture = ExtResource("4_hkp0v")
+stretch_mode = 3
+
+[node name="HBoxContainer" type="HBoxContainer" parent="VisualArea/PanelContainer/EnemySprite" unique_id=301627468]
 layout_mode = 0
-offset_left = -0.559845
-offset_top = -81.40163
-offset_right = 119.440155
-offset_bottom = -41.401627
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="EnemyHPBar" type="ProgressBar" parent="VisualArea/PanelContainer/EnemySprite/HBoxContainer" unique_id=1202804541]
+custom_minimum_size = Vector2(200, 0)
+layout_mode = 2
+
+[node name="EnemyStatusIconsContainer" type="HBoxContainer" parent="VisualArea/PanelContainer/EnemySprite/HBoxContainer" unique_id=560258590]
+custom_minimum_size = Vector2(120, 0)
+layout_mode = 2
+size_flags_horizontal = 3
 
 [node name="UIArea" type="CanvasLayer" parent="." unique_id=154824833]
 

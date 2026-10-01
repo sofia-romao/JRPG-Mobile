@@ -1,4 +1,4 @@
-# CommandMenu.gd (VERSÃO DE DIAGNÓSTICO ROBUSTO)
+# CommandMenu.gd (VERSÃO CORRIGIDA E BLINDADA)
 extends PanelContainer
 
 @export var combat_manager: Node
@@ -15,10 +15,12 @@ extends PanelContainer
 
 var _current_selected_skill: SkillData = null
 
+# 🌟 TRAVA GLOBAL DE PROTEÇÃO CONTRA POPUP ATIVO
+var _popup_fgo_ativo: bool = false
+
 func _ready() -> void:
 	print("🔍 [DEBUG-UI] CommandMenu inicializado no _ready.")
 	
-	# Monitora nativamente se o nó de skills mudar de visibilidade por forças externas
 	if skills_sub_menu:
 		skills_sub_menu.visibility_changed.connect(func():
 			print("🚨 [DEBUG-UI] GATILHO NATIVO: 'skills_sub_menu.visible' mudou para: ", skills_sub_menu.visible, " | Stack: ", get_stack())
@@ -39,6 +41,9 @@ func _ready() -> void:
 			if skill_info_popup: 
 				print("ℹ️ [DEBUG-UI] Fechando popup do FGO via botão.")
 				skill_info_popup.hide()
+				# Pequeno delay seguro para evitar clique residual ao fechar o popup
+				await get_tree().create_timer(0.05).timeout
+				_popup_fgo_ativo = false
 		)
 	mostrar_menu_principal()
 
@@ -50,10 +55,21 @@ func mostrar_menu_principal() -> void:
 
 func show_commands_for(hero_id: String) -> void:
 	print("ℹ️ [DEBUG-UI] 'show_commands_for()' chamada para o herói: ", hero_id)
-	mostrar_menu_principal()
+	
+	# 1. Atualiza a identidade visual do herói atual
 	var hero_state = PlayerData.get_hero(hero_id)
 	if hero_state and hero_state.blueprint:
 		modulate = hero_state.blueprint.theme_color
+	
+	# 2. DESIGN PROFISSIONAL: Se o submenu de skills já estiver aberto e visível,
+	# nós NÃO destruímos a navegação do jogador. Apenas atualizamos a lista de dados de forma limpa.
+	if skills_sub_menu and skills_sub_menu.visible:
+		print("ℹ️ [DEBUG-UI] Herói atualizado com menu de skills aberto. Sincronizando dados...")
+		_populate_skills_list()
+	else:
+		# Se o menu estava fechado ou no estado inicial, abre o menu principal normalmente
+		mostrar_menu_principal()
+
 
 func hide_commands() -> void:
 	print("ℹ️ [DEBUG-UI] 'hide_commands()' executada.")
@@ -82,23 +98,19 @@ func _on_items_pressed() -> void:
 # --- GERENCIAMENTO DINÂMICO DE HABILIDADES ---
 
 func _populate_skills_list() -> void:
-	print("⚙️ [DEBUG-UI] Iniciando o '_populate_skills_list()'. Estado visível do sub-menu: ", skills_sub_menu.visible if skills_sub_menu else "null")
+	print("⚙️ [DEBUG-UI] Iniciando o '_populate_skills_list()'.")
 	
 	if not skills_sub_menu or not skills_sub_menu.visible:
-		print("⚠️ [DEBUG-UI] Abortando popular lista: sub-menu não está visível.")
 		return
 		
 	for child in skills_list_container.get_children():
-		child.free()
+		child.queue_free()
 		
 	var current_hero_id = combat_manager.active_party_ids[combat_manager.current_hero_index]
 	var hero_state = PlayerData.get_hero(current_hero_id)
 	
 	if not hero_state or not hero_state.blueprint:
-		print("⚠️ [DEBUG-UI] Abortando popular lista: herói atual inválido.")
 		return
-		
-	print("📋 [DEBUG-UI] Populando skills para o herói: ", current_hero_id, " | Quantidade: ", hero_state.get_available_skills().size())
 	
 	for skill_id in hero_state.get_available_skills():
 		var skill_data: SkillData = SkillsDatabase.get_skill(skill_id)
@@ -134,9 +146,13 @@ func _populate_skills_list() -> void:
 			button.gui_input.connect(func(event: InputEvent):
 				if button.disabled or not skills_sub_menu.visible: return
 				
+				# Se o popup global do FGO estiver aberto na tela, aborta QUALQUER input novo nos botões de baixo
+				if _popup_fgo_ativo: 
+					button.accept_event()
+					return
+				
 				if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
 					if event.pressed:
-						print("🎯 [DEBUG-UI] 'button_down' legítimo detectado na skill: ", skill_data.name)
 						popup_opened_this_touch = false
 						
 						if hold_timer_tween and hold_timer_tween.is_valid():
@@ -146,28 +162,27 @@ func _populate_skills_list() -> void:
 						hold_timer_tween.tween_interval(0.4)
 						hold_timer_tween.tween_callback(func():
 							if not is_instance_valid(button) or not skills_sub_menu.visible: return
-							print("💥 [DEBUG-UI] Tempo de Toque Longo estourou! Abrindo popup do FGO para: ", skill_data.name)
+							print("💥 [DEBUG-UI] Tempo de Toque Longo estourou! Forçando Popup.")
 							popup_opened_this_touch = true
+							_popup_fgo_ativo = true # Trava o sistema globalmente
+							
 							if skill_info_popup and skill_info_name and skill_info_desc:
 								skill_info_name.text = skill_data.name
 								skill_info_desc.text = skill_data.description
 								skill_info_popup.show()
 								button.release_focus()
 						)
-			)
-			
-			button.pressed.connect(func():
-				print("🎯 [DEBUG-UI] Evento 'pressed' disparado no botão da skill: ", skill_data.name, " | Popup aberto neste toque? ", popup_opened_this_touch)
-				if not skills_sub_menu.visible: return
-				
-				if hold_timer_tween and hold_timer_tween.is_valid():
-					hold_timer_tween.kill()
-					
-				if popup_opened_this_touch:
-					print("ℹ️ [DEBUG-UI] Clique curto bloqueado porque o popup do FGO está ativo.")
-					return 
-					
-				_on_skill_clicked(skill_data)
+					else:
+						if hold_timer_tween and hold_timer_tween.is_valid():
+							hold_timer_tween.kill()
+						
+						if popup_opened_this_touch:
+							return
+						
+						# Dupla checagem de segurança antes de disparar
+						if not _popup_fgo_ativo:
+							print("🎯 [DEBUG-UI] Clique curto legítimo executado para: ", skill_data.name)
+							_on_skill_clicked(skill_data)
 			)
 			
 			button.mouse_exited.connect(func():
@@ -180,9 +195,13 @@ func _populate_skills_list() -> void:
 	back_btn.focus_mode = Control.FOCUS_NONE
 	skills_list_container.add_child(back_btn)
 	back_btn.pressed.connect(mostrar_menu_principal)
-	print("⚙️ [DEBUG-UI] Fim do '_populate_skills_list()' com sucesso.")
 
 func _on_skill_clicked(skill: SkillData) -> void:
+	# Se por acaso o CombatManager resetar a UI e disparar o clique antigo, a trava impede o avanço
+	if _popup_fgo_ativo:
+		print("🚫 [DEBUG-UI] _on_skill_clicked bloqueado preventivamente por trava de popup ativo.")
+		return
+		
 	print("🎬 [DEBUG-UI] '_on_skill_clicked' validada para: ", skill.name)
 	_current_selected_skill = skill
 	match skill.target_type:
@@ -198,7 +217,7 @@ func _on_skill_clicked(skill: SkillData) -> void:
 func _open_alliance_target_menu() -> void:
 	print("⚙️ [DEBUG-UI] Abrindo lista de alvos aliados.")
 	for child in skills_list_container.get_children():
-		child.free()
+		child.queue_free()
 		
 	for hero_id in combat_manager.active_party_ids:
 		var hero_state = PlayerData.get_hero(hero_id)
