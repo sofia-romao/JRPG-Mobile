@@ -4,10 +4,12 @@
 [ext_resource type="Script" uid="uid://c5c1lk86h7ixb" path="res://boss_phase_data.gd" id="1_uc2cv"]
 [ext_resource type="Script" uid="uid://dx5t76l24vpjn" path="res://boss_structure_data.gd" id="2_gblpe"]
 [ext_resource type="Resource" uid="uid://cd2jeusrgnbkr" path="res://resources/enemies/barghest_data/barghest_altria_enraged.tres" id="3_1ujy6"]
+[ext_resource type="Resource" uid="uid://cd8fcadpqvxxu" path="res://resources/enemies/barghest_data/enrage_activate.tres" id="4_uhgfn"]
+[ext_resource type="Resource" uid="uid://cve1mevm64ex" path="res://resources/enemies/barghest_data/barghest_ice_hit.tres" id="5_5f5h1"]
 
 [resource]
 script = ExtResource("2_gblpe")
 boss_id = "barghest"
 initial_enemy_blueprint = ExtResource("1_6m753")
-possible_phases = Array[ExtResource("1_uc2cv")]([ExtResource("3_1ujy6")])
+possible_phases = Array[ExtResource("1_uc2cv")]([ExtResource("4_uhgfn"), ExtResource("5_5f5h1"), ExtResource("3_1ujy6")])
 metadata/_custom_type_script = "uid://dx5t76l24vpjn"

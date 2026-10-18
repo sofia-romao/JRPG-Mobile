@@ -10,7 +10,11 @@ const SKILL_PATHS: Array[String] = [
 	"res://resources/skills/player_skills/bufu.tres",
 	"res://resources/skills/player_skills/dia.tres",
 	"res://resources/skills/player_skills/rush.tres",
-	"res://resources/skills/player_skills/tarukaja.tres"
+	"res://resources/skills/player_skills/tarukaja.tres",
+	"res://resources/skills/player_skills/freeze.tres",
+	"res://resources/skills/boss_skills/enemy_agi.tres",
+	"res://resources/skills/boss_skills/enrage.tres"
+	
 ]
 
 func _ready() -> void:

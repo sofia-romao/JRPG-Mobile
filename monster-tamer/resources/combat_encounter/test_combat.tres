@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="CombatData" format=3 uid="uid://dbr1tpkwafry2"]
+
+[ext_resource type="Script" uid="uid://6ih4xv6hibdq" path="res://combat_data.gd" id="1_kt7ac"]
+[ext_resource type="Resource" uid="uid://bq7otrd6fpk42" path="res://resources/enemies/jack_frost.tres" id="1_lqyvv"]
+
+[resource]
+script = ExtResource("1_kt7ac")
+enemy = ExtResource("1_lqyvv")
+metadata/_custom_type_script = "uid://6ih4xv6hibdq"

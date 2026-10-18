@@ -1,0 +1,38 @@
+[gd_scene format=3 uid="uid://dtka1msgfngt8"]
+
+[ext_resource type="Script" uid="uid://n8kqo011yuat" path="res://hero_status_card.gd" id="1_hjp1k"]
+
+[node name="HeroStatusCard" type="MarginContainer" unique_id=389208712 node_paths=PackedStringArray("name_label", "hp_label", "mp_label", "status_icons_container")]
+offset_right = 219.0
+offset_bottom = 40.0
+theme_override_constants/margin_left = 0
+script = ExtResource("1_hjp1k")
+name_label = NodePath("BackGroundPanel/ContentLayout/NomeLabel")
+hp_label = NodePath("BackGroundPanel/ContentLayout/HPLabel")
+mp_label = NodePath("BackGroundPanel/ContentLayout/MPLabel")
+status_icons_container = NodePath("BackGroundPanel/ContentLayout/StatusIconsContainer")
+
+[node name="BackGroundPanel" type="PanelContainer" parent="." unique_id=1872568485]
+layout_mode = 2
+
+[node name="ContentLayout" type="HBoxContainer" parent="BackGroundPanel" unique_id=1642852609]
+layout_mode = 2
+
+[node name="NomeLabel" type="Label" parent="BackGroundPanel/ContentLayout" unique_id=1592080422]
+layout_mode = 2
+text = "Altria"
+
+[node name="Spacer" type="Control" parent="BackGroundPanel/ContentLayout" unique_id=2146186067]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="HPLabel" type="Label" parent="BackGroundPanel/ContentLayout" unique_id=1613446156]
+layout_mode = 2
+text = "HP:50/50"
+
+[node name="MPLabel" type="Label" parent="BackGroundPanel/ContentLayout" unique_id=221821182]
+layout_mode = 2
+text = "MP:50/50"
+
+[node name="StatusIconsContainer" type="HBoxContainer" parent="BackGroundPanel/ContentLayout" unique_id=381406500]
+layout_mode = 2

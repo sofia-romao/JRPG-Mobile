@@ -103,7 +103,9 @@ func initialize_combat(data: CombatData) -> void:
 	_update_active_party_list()
 	
 	# 🚨 NOVO: Checagem de "Frame Zero" passando a party ativa para os gatilhos do BossPhaseData
-	var initial_context = {"active_party_ids": active_party_ids}
+	var initial_context = {
+	"event_type": "on_combat_start", 
+	"active_party_ids": active_party_ids}
 	spawned_enemy.evaluate_triggers("on_combat_start", initial_context)
 	
 	for hero_id in active_party_ids:
@@ -122,6 +124,7 @@ func initialize_combat(data: CombatData) -> void:
 # --- REGRAS DE FLUXO DE TURNO ---
 
 func _next_hero_turn() -> void:
+	
 	if current_state == CombatState.VICTORY or current_state == CombatState.DEFEAT:
 		return
 		
@@ -133,7 +136,7 @@ func _next_hero_turn() -> void:
 	var hero_id = active_party_ids[current_hero_index]
 	var hero_state = PlayerData.get_hero(hero_id)
 	
-	# ⏳ [NOVO] PROCESSA OS STATUS DO HERÓI NO INÍCIO DO TURNO DELE
+	# PROCESSA OS STATUS DO HERÓI NO INÍCIO DO TURNO DELE
 	# Se ele tiver um veneno, toma dano aqui. Se tiver passiva de MP (como o tanque híbrido), regenera aqui!
 	if hero_state:
 		_process_hero_passives_and_statuses_start(hero_id, hero_state)
@@ -146,7 +149,6 @@ func _process_hero_passives_and_statuses_start(hero_id: String, hero_state: Hero
 	# 1. Ticks status reductions naturally and executes their on_turn_tick behaviors
 	hero_state.tick_status() 
 	
-	# 2. 🧼 CLEANUP: The hardcoded "PARTY_MANA_REGEN" string check is gone!
 	# Every status or passive attached to the hero now handles its own execution 
 	# inside its respective script via the 'tick_status' call above.
 	
@@ -159,11 +161,19 @@ func _process_hero_passives_and_statuses_start(hero_id: String, hero_state: Hero
 			_update_hero_ui_display(p_id)
 func _finish_current_hero_turn() -> void:
 	input_blocked = true
+	
+	# 🌟 RESOLVE O ESTADO DA UI PARA O PRÓXIMO PERSONAGEM:
+	if ui_command_buttons:
+		# 1. Força o menu a fechar as abas secundárias e voltar para os botões principais de forma síncrona
+		if ui_command_buttons.has_method("mostrar_menu_principal"):
+			ui_command_buttons.mostrar_menu_principal()
+		
+		# 2. Esconde o painel inteiro durante a transição rítmica dos 0.4 segundos
+		ui_command_buttons.hide() 
+	
 	current_hero_index += 1 
 	await get_tree().create_timer(0.4).timeout
 	_next_hero_turn()
-
-# Dentro do seu combat_manager.gd
 
 func _start_enemy_turn() -> void:
 	current_state = CombatState.ENEMY_TURN
@@ -346,17 +356,25 @@ func execute_hero_party_heal(skill: SkillData) -> void:
 	print("💚 [Combat] %s healed the entire party for %d HP." % [caster_state.blueprint.character_name, heal_amount])
 	_finish_current_hero_turn()
 
-## Executes the enemy turn, querying the boss AI brain for actions and targets dynamically.
 ## Executes the enemy turn, querying the boss AI brain, and managing Single-Target, AoE, and Self actions.
 func _execute_enemy_attack() -> void:
 	if active_party_ids.is_empty():
 		_run_state_based_actions()
 		return
 
-	# 🛡️ STUN GUARDRAIL: Check if the boss phase prevents them from acting
+	# 🛡️ STUN GUARDRAIL: Check if the boss phase prevents them from acting right at turn start
 	if spawned_enemy.has_method("is_stunned") and spawned_enemy.is_stunned():
 		if dialogue_label:
 			dialogue_label.text = "[center][color=gray]%s is incapacitated in this phase![/color][/center]" % spawned_enemy.active_blueprint.name
+		# 🔓 THE RECOVERY SNAPSHOT:
+		# He skipped his action for this round. We clear his stun status right now 
+		# so that he can breathe and act normally on his NEXT turn cycle!
+		if "is_currently_stunned" in spawned_enemy:
+			spawned_enemy.is_currently_stunned = false
+			print("🔓 [CombatManager] Stun Discharged: %s recovered and will act next round." % spawned_enemy.active_blueprint.name)
+		
+		
+		
 		await get_tree().create_timer(1.2).timeout
 		_finish_enemy_turn()
 		return
@@ -376,14 +394,20 @@ func _execute_enemy_attack() -> void:
 		ai_decision = { "skill": null, "target_id": active_party_ids.pick_random() }
 		print("⚠️ [CombatManager] Warning: %s lacks an AI Brain resource. Using random attack." % spawned_enemy.active_blueprint.name)
 
+	print("\n🔍 [ROBUST-DIAGNOSTIC] === INÍCIO DO ATAQUE DO INIMIGO ===")
+	print("• Frame da Engine: ", Engine.get_frames_drawn())
+	print("• Dicionário retornado pela IA: ", ai_decision)
+	
 	var used_skill: SkillData = ai_decision.get("skill")
 	var target_hero_id: String = ai_decision.get("target_id")
 	
-	# STEP 3: Setup dynamic execution variables based on the AI's choice
+	print("• used_skill extraído: ", used_skill.name if used_skill else "null (Ataque Básico)")
+	print("• target_hero_id extraído: ", target_hero_id)
+
 	var damage_base = spawned_enemy.get_attack() 
 	var element = "PHYSICAL"
 	var action_name = "Basic Attack"
-	var target_type: SkillData.TargetType = SkillData.TargetType.ENEMY # Default to single target enemy from skill data perspective
+	var target_type: SkillData.TargetType = SkillData.TargetType.ENEMY 
 
 	if used_skill != null:
 		spawned_enemy.modify_mp(-used_skill.mp_cost)
@@ -394,31 +418,88 @@ func _execute_enemy_attack() -> void:
 		if used_skill.sound_cast:
 			AudioManager.play_sfx(used_skill.sound_cast)
 
+	print("• Variáveis consolidadas -> action_name: '%s' | target_type ID: %d" % [action_name, target_type])
+	print("• Estado visual ANTES do texto -> ui_dialogue_box.visible: ", ui_dialogue_box.visible if ui_dialogue_box else "null")
+	print("• Estado visual ANTES do texto -> dialogue_label.visible: ", dialogue_label.visible if dialogue_label else "null")
+
 	# Update Narrative Box based on Target Type
+		# Update Narrative Box based on Target Type safely
 	if dialogue_label:
 		if used_skill != null and target_type == SkillData.TargetType.ALLY_ALL:
 			dialogue_label.text = "[center][b]%s[/b] CASTED AOE [b]%s[/b] ON THE PARTY![/center]" % [spawned_enemy.active_blueprint.name.to_upper(), action_name.to_upper()]
-		elif used_skill != null and target_type == SkillData.TargetType.ENEMY:
+		elif used_skill != null and target_type == SkillData.TargetType.SELF:
 			dialogue_label.text = "[center][b]%s[/b] USED SELF SKILL [b]%s[/b]![/center]" % [spawned_enemy.active_blueprint.name.to_upper(), action_name.to_upper()]
+		elif used_skill != null and target_type == SkillData.TargetType.EVERYONE:
+			dialogue_label.text = "[center][b]%s[/b] UNLEASHED ULTIMATE [b]%s[/b] ON EVERYONE![/center]" % [spawned_enemy.active_blueprint.name.to_upper(), action_name.to_upper()]
 		else:
-			var target_name = "ALLY"
-			var target_hero = PlayerData.get_hero(target_hero_id)
-			if target_hero: target_name = target_hero.blueprint.character_name.to_upper()
+			# 🛡️ THE SHIELD: Fallback safely if target_hero_id is blank or corrupted during basic attacks
+			var target_name = "THE PARTY"
+			
+			if target_hero_id != "" and PlayerData.has_method("get_hero"):
+				var target_hero = PlayerData.get_hero(target_hero_id)
+				if target_hero and target_hero.blueprint:
+					target_name = target_hero.blueprint.character_name.to_upper()
+				else:
+					# If the ID didn't exist in PlayerData, pick a live backup name safely from your active queue
+					if not active_party_ids.is_empty():
+						var backup_id = active_party_ids[0]
+						var backup_hero = PlayerData.get_hero(backup_id)
+						if backup_hero and backup_hero.blueprint:
+							target_name = backup_hero.blueprint.character_name.to_upper()
+			
 			dialogue_label.text = "[center][b]%s[/b] USED [b]%s[/b] ON [b]%s[/b]![/center]" % [spawned_enemy.active_blueprint.name.to_upper(), action_name.to_upper(), target_name]
 
+	print("• Texto injetado na Label: '%s'" % dialogue_label.text if dialogue_label else "null")
+	print("🔍 [ROBUST-DIAGNOSTIC] === FIM DO TRATAMENTO DE TEXTO ===\n")
 	await get_tree().create_timer(0.6).timeout
 
-	# ⚔️ STEP 4: RESOLVE ACTIONS BASED ON TARGET TYPE ⚔️
+	# ⚔️ STEP 4: RESOLVE ACTIONS BASED ON MODULAR TARGET TYPES ⚔️
 	
-	# SCENARIO A: SELF SKILL (The Boss casts a buff/heal on themselves)
-	if used_skill != null and target_type == SkillData.TargetType.ENEMY:
-		# If it's a healing element, recover Boss HP
+		# 🌟 CORRECTED INSTANT TRANSFORMATION OVERRIDE:
+	if used_skill is InstantTransformationSkill:
+		var transform_skill = used_skill as InstantTransformationSkill
+		if transform_skill and transform_skill.target_enemy_blueprint:
+			print("⚡ [CombatManager] INSTANT BLUEPRINT SWAP CAPTURED! Morfando via Skill...")
+			
+			if spawned_enemy:
+				# 💾 HP PROTECTION CHAIN: Save his exact health before the swap
+				var old_blueprint_name = spawned_enemy.active_blueprint.name
+				var old_max_hp = spawned_enemy.get_max_hp()
+				var old_hp = spawned_enemy.current_hp # Captures current health exactly
+				
+				# 🎭 Apply the mutation parameters directly
+				spawned_enemy.active_blueprint = transform_skill.target_enemy_blueprint
+				spawned_enemy.current_phase_id = transform_skill.target_enemy_blueprint.id
+				spawned_enemy.is_currently_stunned = transform_skill.force_stun
+				
+				# 🛡️ THE BULLETPROOF CLAMP: Restores his HP safely bound by the new maximum
+				spawned_enemy.current_hp = clamp(old_hp, 0, spawned_enemy.get_max_hp())
+				
+				print("🎭 [Instant Skill] === MUTAÇÃO EXECUTADA ===")
+				print("   | De: %s  ──>  Para: %s" % [old_blueprint_name, spawned_enemy.active_blueprint.name])
+				print("   | HP Atual Preservado Definitivamente: %d" % spawned_enemy.current_hp)
+				print("   =========================================")
+				
+				# Emit the visual update signals to instantly repaint your mobile HUD
+				spawned_enemy.hp_changed.emit(spawned_enemy.current_hp, spawned_enemy.get_max_hp(), 0)
+				spawned_enemy.phase_changed.emit(spawned_enemy.active_blueprint.id)
+			
+			# Play screen juicing animations
+			_trigger_screen_flash(element)
+			_trigger_screen_shake(20.0)
+			
+			# Exit the turn cleanly right here
+			await get_tree().create_timer(1.2).timeout
+			_finish_enemy_turn()
+			return
+
+	# SCENARIO A: SELF SKILL (The Boss targets themselves / original implementation updated with ENUM reference)
+	if used_skill != null and target_type == SkillData.TargetType.SELF:
 		if element == "HEAL":
 			var heal_amount = int(spawned_enemy.get_attack() * used_skill.damage_multiplier)
-			spawned_enemy.current_hp += heal_amount # Sincroniza e emite sinais de vida automaticamente
+			spawned_enemy.current_hp += heal_amount 
 			_trigger_enemy_damage_popup(heal_amount, "HEAL")
 		
-		# Apply status effect/buff to the Boss themselves
 		if used_skill.status_to_apply:
 			var duration = used_skill.status_to_apply.default_duration
 			if spawned_enemy.has_method("apply_status"):
@@ -431,25 +512,43 @@ func _execute_enemy_attack() -> void:
 		_trigger_screen_flash(element)
 		_trigger_screen_shake(18.0)
 		
-		# Loops through a copy of the party to prevent index corruption mid-loop
 		var current_squad = active_party_ids.duplicate()
 		for hero_id in current_squad:
 			var target_hero = PlayerData.get_hero(hero_id)
 			if target_hero and target_hero.current_hp > 0:
-				# Rolls hidden d100 individually for each hero in the squad!
 				var hero_outcome: String = target_hero.take_damage_combat(damage_base, element)
 				
 				_trigger_hero_damage_popup_text(hero_id, hero_outcome, element)
 				_update_hero_ui_display(hero_id)
 				
-				# Track death individually per hero
 				if target_hero.current_hp <= 0 and hero_outcome != "Miss!":
 					var idx = active_party_ids.find(hero_id)
 					if idx != -1: active_party_ids.remove_at(idx)
 
-	# SCENARIO C: CLASSIC SINGLE TARGET (Hits one selected hero)
+	# SCENARIO C: EVERYONE (Hits all live heroes AND executes boss-side modifications / filters)
+	elif used_skill != null and target_type == SkillData.TargetType.EVERYONE:
+		_trigger_screen_flash(element)
+		_trigger_screen_shake(20.0)
+		
+		if used_skill.status_to_apply and spawned_enemy.has_method("apply_status"):
+			var duration = used_skill.status_to_apply.default_duration
+			spawned_enemy.apply_status(used_skill.status_to_apply, duration)
+			
+		var current_squad = active_party_ids.duplicate()
+		for hero_id in current_squad:
+			var target_hero = PlayerData.get_hero(hero_id)
+			if target_hero and target_hero.current_hp > 0:
+				var hero_outcome: String = target_hero.take_damage_combat(damage_base, element)
+				
+				_trigger_hero_damage_popup_text(hero_id, hero_outcome, element)
+				_update_hero_ui_display(hero_id)
+				
+				if target_hero.current_hp <= 0 and hero_outcome != "Miss!":
+					var idx = active_party_ids.find(hero_id)
+					if idx != -1: active_party_ids.remove_at(idx)
+
+	# SCENARIO D: CLASSIC SINGLE TARGET (Fallback path for ENEMY, ALLY_SINGLE, or basic strikes)
 	else:
-		# Safety check for single target fallback
 		if target_hero_id == "" or not active_party_ids.has(target_hero_id):
 			target_hero_id = active_party_ids.pick_random()
 			
@@ -466,15 +565,31 @@ func _execute_enemy_attack() -> void:
 				var dead_idx = active_party_ids.find(target_hero_id)
 				if dead_idx != -1: active_party_ids.remove_at(dead_idx)
 
-	# Play impact sound effects if configured
 	if used_skill != null and used_skill.sound_impact:
 		AudioManager.play_sfx(used_skill.sound_impact)
 
-	await get_tree().create_timer(1.0).timeout 
+	# 1. ⚔️ RESOLVE REACTION DATA SEQUENCES:
+	# Forces state-based checks to run immediately right after the damage is processed.
 	_run_state_based_actions()
+	
+	# 2. 🛑 MID-TURN TURN SKIP INTERCEPTION:
+	# If the reaction from your custom triggers mutated the boss into an incapacitated / stunned phase
+	# mid-execution, we safely hijack the thread, show an alert text box, and exit to avoid animation stalls.
+	if spawned_enemy.has_method("is_stunned") and spawned_enemy.is_stunned():
+		print("🚨 [CombatManager] Stun Break Active: Turn cut short by phase collapse.")
+		if dialogue_label:
+			dialogue_label.text = "[center][b][color=orange]⚠️ FORCE BREAK: %s collapsed from exhaustion! Turn Interrupted! ⚠️[/color][/b][/center]" % spawned_enemy.active_blueprint.name.to_upper()
+		
+		await get_tree().create_timer(1.8).timeout
+		_finish_enemy_turn()
+		return
+
+	# Pacing wait window for regular actions
+	await get_tree().create_timer(1.5).timeout 
 	
 	if current_state == CombatState.ENEMY_TURN:
 		_finish_enemy_turn()
+
 func _run_state_based_actions() -> void:
 	# Guarda o estado original para saber se mudou
 	var original_state = current_state
@@ -675,13 +790,22 @@ func _flash_hero_card_color(hero_id: String, element_type: String) -> void:
 
 ## Alterna de forma segura entre a interface do jogador e o anúncio de texto
 func _alternar_interface_combate(mostrar_comandos: bool, hero_id: String = "") -> void:
+	# 🌟 PROTEÇÃO ARQUITETURAL: 
+	# Se o jogo está estritamente no turno do inimigo, a caixa de diálogos NÃO PODE
+	# ser escondida por atualizações residuais de dados ou sinais de MP/HP em background.
+	if current_state == CombatState.ENEMY_TURN:
+		if ui_dialogue_box: 
+			ui_dialogue_box.show()
+		if ui_command_buttons: 
+			ui_command_buttons.hide()
+		return
+
+	# Fluxo normal para o turno dos heróis
 	if mostrar_comandos:
 		if ui_dialogue_box: 
 			ui_dialogue_box.hide()
 		if ui_command_buttons: 
-			# Se a caixa de diálogo já estava escondida quando fomos ativar os comandos,
-			# significa que é uma virada de turno comum (Novo Turno = true)
-			var novo_turno = (current_state == CombatState.HERO_TURN and not ui_dialogue_box.visible)
+			var novo_turno = (current_hero_index == 0 and not ui_dialogue_box.visible)
 			ui_command_buttons.show_commands_for(hero_id, novo_turno)
 	else:
 		if ui_dialogue_box: 

@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="EnemyData" format=3 uid="uid://doigihlmkex4v"]
+
+[ext_resource type="Texture2D" uid="uid://bwi77x5m5uiut" path="res://icon.svg" id="1_v637l"]
+[ext_resource type="Script" uid="uid://yr4eb4cde4y1" path="res://enemy_data.gd" id="4_jl66c"]
+
+[resource]
+script = ExtResource("4_jl66c")
+id = "barghest"
+name = "Barghest"
+color_theme = Color(1, 0, 0.015686275, 1)
+combat_sprite = ExtResource("1_v637l")
+res_fire = 0.5
+metadata/_custom_type_script = "uid://yr4eb4cde4y1"

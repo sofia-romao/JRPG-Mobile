@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="CombatData" format=3 uid="uid://bq3ypfvrj8c8c"]
+
+[ext_resource type="Script" uid="uid://6ih4xv6hibdq" path="res://combat_data.gd" id="1_3ob6a"]
+[ext_resource type="Resource" uid="uid://cuwv3vox5vnhu" path="res://resources/enemies/barghest_data/barghest_structure.tres" id="1_di2ho"]
+
+[resource]
+script = ExtResource("1_3ob6a")
+boss_structure = ExtResource("1_di2ho")
+metadata/_custom_type_script = "uid://6ih4xv6hibdq"

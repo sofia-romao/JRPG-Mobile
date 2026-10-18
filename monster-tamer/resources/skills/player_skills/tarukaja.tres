@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="SkillData" format=3 uid="uid://bmuldk8fqjo5u"]
+
+[ext_resource type="Script" uid="uid://8ol7wmoevwbk" path="res://skill_data.gd" id="1_4oox1"]
+[ext_resource type="Resource" uid="uid://b8u3sdbyaig3f" path="res://resources/status_effects/atk_buff.tres" id="2_yqfcx"]
+
+[resource]
+script = ExtResource("1_4oox1")
+id = "tarukaja"
+name = "Tarukaja"
+mp_cost = 8
+element_type = "SUPPORT"
+target_type = 1
+status_to_apply = ExtResource("2_yqfcx")
+status_chance = 1.0
+status_duration = 3
+metadata/_custom_type_script = "uid://8ol7wmoevwbk"

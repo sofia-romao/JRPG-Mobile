@@ -1,0 +1,8 @@
+[gd_resource type="Resource" script_class="TriggerElementalHit" format=3 uid="uid://1bffk7owin1k"]
+
+[ext_resource type="Script" uid="uid://eahsa8r50vtx" path="res://trigger_elemental_hit.gd" id="1_o0t5u"]
+
+[resource]
+script = ExtResource("1_o0t5u")
+required_element = "ICE"
+metadata/_custom_type_script = "uid://eahsa8r50vtx"

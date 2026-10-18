@@ -1,0 +1,12 @@
+[gd_resource type="Resource" script_class="BossPhaseData" format=3 uid="uid://cd8fcadpqvxxu"]
+
+[ext_resource type="Script" uid="uid://d38neb12fpe8p" path="res://activation_trigger.gd" id="1_d3jht"]
+[ext_resource type="Resource" uid="uid://b7xbnpv41gjsq" path="res://resources/boss_triggers/trigger_status.tres" id="2_anmec"]
+[ext_resource type="Script" uid="uid://c5c1lk86h7ixb" path="res://boss_phase_data.gd" id="2_cdwr5"]
+[ext_resource type="Resource" uid="uid://dojuriegbbnmt" path="res://resources/enemies/barghest_data/barghest_enraged.tres" id="3_sf4r7"]
+
+[resource]
+script = ExtResource("2_cdwr5")
+phase_blueprint = ExtResource("3_sf4r7")
+activation_triggers = Array[ExtResource("1_d3jht")]([ExtResource("2_anmec")])
+metadata/_custom_type_script = "uid://c5c1lk86h7ixb"

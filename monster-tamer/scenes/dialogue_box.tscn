@@ -1,0 +1,112 @@
+[gd_scene format=3 uid="uid://ctwonplhnpd0r"]
+
+[ext_resource type="Script" uid="uid://byeskm8og8tco" path="res://dialogue_manager.gd" id="1_senjy"]
+
+[node name="DialogueBox" type="Control" unique_id=1614894843 node_paths=PackedStringArray("name_label", "text_label", "portrait_rect", "choices_container", "next_button")]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_senjy")
+name_label = NodePath("Control/VBoxContainer/Panel/MarginContainer/NameLabel")
+text_label = NodePath("Control/VBoxContainer/Panel2/MarginContainer/NarrationBox")
+portrait_rect = NodePath("CharacterPortrait")
+choices_container = NodePath("Control/VBoxContainer/ChoicesContainer")
+next_button = NodePath("NextButton")
+
+[node name="CharacterPortrait" type="TextureRect" parent="." unique_id=710672688]
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -0.21621704
+offset_top = -752.6669
+offset_right = -0.21618652
+offset_bottom = -405.66687
+grow_horizontal = 2
+grow_vertical = 0
+
+[node name="Control" type="Control" parent="." unique_id=1557444920]
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -191.0
+grow_horizontal = 2
+grow_vertical = 0
+
+[node name="BocBg" type="TextureRect" parent="Control" unique_id=1605332727]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="Control" unique_id=177431581]
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -454.0
+grow_horizontal = 2
+grow_vertical = 0
+
+[node name="ChoicesContainer" type="VBoxContainer" parent="Control/VBoxContainer" unique_id=714274165]
+custom_minimum_size = Vector2(540, 160)
+layout_mode = 2
+
+[node name="Panel" type="Panel" parent="Control/VBoxContainer" unique_id=394740178]
+custom_minimum_size = Vector2(540, 50)
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="MarginContainer" type="MarginContainer" parent="Control/VBoxContainer/Panel" unique_id=58141535]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0
+theme_override_constants/margin_left = 20
+
+[node name="NameLabel" type="RichTextLabel" parent="Control/VBoxContainer/Panel/MarginContainer" unique_id=1298905705]
+custom_minimum_size = Vector2(520, 50)
+layout_mode = 2
+theme_override_font_sizes/normal_font_size = 32
+
+[node name="Panel2" type="Panel" parent="Control/VBoxContainer" unique_id=949468083]
+custom_minimum_size = Vector2(540, 400)
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="MarginContainer" type="MarginContainer" parent="Control/VBoxContainer/Panel2" unique_id=917225959]
+custom_minimum_size = Vector2(540, 400)
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_top = -120.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 20
+
+[node name="NarrationBox" type="RichTextLabel" parent="Control/VBoxContainer/Panel2/MarginContainer" unique_id=562803218]
+custom_minimum_size = Vector2(500, 80)
+layout_mode = 2
+theme_override_font_sizes/normal_font_size = 24
+
+[node name="NextButton" type="Button" parent="." unique_id=391012292]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+flat = true

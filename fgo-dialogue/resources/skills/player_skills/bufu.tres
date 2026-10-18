@@ -6,5 +6,6 @@
 script = ExtResource("1_mecrr")
 id = "bufu"
 name = "Bufu"
+description = "Causa dano elemental de gelo."
 element_type = "ICE"
 metadata/_custom_type_script = "uid://8ol7wmoevwbk"

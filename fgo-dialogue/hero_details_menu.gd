@@ -28,12 +28,13 @@ class_name HeroDetailsMenu
 @export_category("Narrative Database")
 ## hero_owner_id ("altria", "mash") -> { "common": Array[String], "level_up": Dictionary }
 @export var dialogue_database: Dictionary = {}
-
+@export_file("*.csv") var csv_dialogue_path: String = "res://dialogue_database.csv"
 var current_hero_owner: String = ""
 var _current_tween: Tween = null
 var _last_char_count: int = 0
 
 func _ready() -> void:
+	_load_dialogue_from_csv()
 	if selection_panel: selection_panel.show()
 	if details_panel: details_panel.hide()
 	
@@ -213,7 +214,52 @@ func _check_and_play_sfx() -> void:
 		if current_chars <= current_text.length():
 			var last_char = current_text[current_chars - 1]
 			if last_char != " " and text_click_sfx: AudioManager.play_sfx(text_click_sfx)
+func _load_dialogue_from_csv() -> void:
+	if csv_dialogue_path.is_empty() or not FileAccess.file_exists(csv_dialogue_path):
+		print("⚠️ CSV file not found! Falling back to empty database.")
+		return
 
+	var file = FileAccess.open(csv_dialogue_path, FileAccess.READ)
+	
+	# Skip the header row (id, common_lines, kit_reactions)
+	var _header = file.get_csv_line() 
+	
+	# Clear out the runtime dictionary to populate it fresh
+	dialogue_database.clear()
+
+	while !file.eof_reached():
+		var row = file.get_csv_line()
+		if row.size() < 3 or row[0].is_empty(): 
+			continue # Skip empty or broken lines
+			
+		var hero_id = row[0].strip_edges()
+		var raw_common = row[1].strip_edges()
+		var raw_reactions = row[2].strip_edges()
+		
+		# 1. Parse common lines array (split by '|')
+		var common_array: Array[String] = []
+		if not raw_common.is_empty():
+			for line in raw_common.split("|"):
+				common_array.append(line.strip_edges())
+				
+		# 2. Parse kit reactions dictionary (split by '|' then by ':')
+		var kit_dict: Dictionary = {}
+		if not raw_reactions.is_empty():
+			for pair in raw_reactions.split("|"):
+				var parts = pair.split(":")
+				if parts.size() >= 2:
+					var kit_id = parts[0].strip_edges()
+					var text = parts[1].strip_edges()
+					kit_dict[kit_id] = text
+					
+		# 3. Inject beautifully into your exact required data structure!
+		dialogue_database[hero_id] = {
+			"common": common_array,
+			"kit_reactions": kit_dict
+		}
+		
+	file.close()
+	print("📊 Success! Built narrative database from CSV for HTML5 compatibility.")
 ## 💬 Acionado quando o jogador clica fisicamente no ChatButton para ouvir uma nova frase!
 func _on_chat_button_pressed() -> void:
 	_start_conversation()

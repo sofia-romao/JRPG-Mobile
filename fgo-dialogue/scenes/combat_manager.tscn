@@ -15,8 +15,8 @@ background_texture = NodePath("VisualArea/BackgroundTexture")
 ui_heroes_container = NodePath("UIArea/MainMobileLayout/PartyPanel/PartyContainer")
 ui_command_buttons = NodePath("UIArea/MainMobileLayout/CommandMenu")
 enemy_hp_bar = NodePath("VisualArea/PanelContainer/EnemySprite/HBoxContainer/EnemyHPBar")
-dialogue_label = NodePath("UIArea/MainMobileLayout/CommandMenu/DialogueBox/DialogueLabel")
-ui_dialogue_box = NodePath("UIArea/MainMobileLayout/CommandMenu/DialogueBox")
+dialogue_label = NodePath("UIArea/MainMobileLayout/DialogueBox/DialogueLabel")
+ui_dialogue_box = NodePath("UIArea/MainMobileLayout/DialogueBox")
 visual_area_node = NodePath("VisualArea")
 screen_flash_effect = NodePath("UIArea/ScreenFlashEffect")
 enemy_status_icons_container = NodePath("VisualArea/PanelContainer/EnemySprite/HBoxContainer/EnemyStatusIconsContainer")
@@ -156,15 +156,15 @@ layout_mode = 2
 size_flags_vertical = 3
 text = "[CLOSE]"
 
-[node name="DialogueBox" type="PanelContainer" parent="UIArea/MainMobileLayout/CommandMenu" unique_id=1263481209]
+[node name="DialogueBox" type="PanelContainer" parent="UIArea/MainMobileLayout" unique_id=1263481209]
 custom_minimum_size = Vector2(0, 200)
 layout_mode = 2
 
-[node name="ColorRect" type="ColorRect" parent="UIArea/MainMobileLayout/CommandMenu/DialogueBox" unique_id=1493915956]
+[node name="ColorRect" type="ColorRect" parent="UIArea/MainMobileLayout/DialogueBox" unique_id=1493915956]
 layout_mode = 2
 color = Color(0.011764706, 0.011764706, 0.011764706, 1)
 
-[node name="DialogueLabel" type="RichTextLabel" parent="UIArea/MainMobileLayout/CommandMenu/DialogueBox" unique_id=1767918853]
+[node name="DialogueLabel" type="RichTextLabel" parent="UIArea/MainMobileLayout/DialogueBox" unique_id=1767918853]
 layout_mode = 2
 bbcode_enabled = true
 

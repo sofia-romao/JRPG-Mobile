@@ -1,0 +1,9 @@
+[gd_resource type="Resource" script_class="StatusEffect" format=3 uid="uid://57eam45t6w4u"]
+
+[ext_resource type="Script" uid="uid://2gxnapqucdnq" path="res://status_effect.gd" id="1_31tuu"]
+
+[resource]
+script = ExtResource("1_31tuu")
+is_debuff = false
+default_duration = 1
+metadata/_custom_type_script = "uid://2gxnapqucdnq"

@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="EnemyData" format=3 uid="uid://belf4of38nark"]
+
+[ext_resource type="Resource" uid="uid://co7cpvqtppk7k" path="res://resources/enemies/barghest_data/barghest_exausted_brain.tres" id="1_8qed5"]
+[ext_resource type="Script" uid="uid://yr4eb4cde4y1" path="res://enemy_data.gd" id="1_gbqsc"]
+[ext_resource type="Texture2D" uid="uid://jhwoiq43oaw" path="res://resources/dialogue_sprites_characters/o EX dialogue.png" id="1_l30ac"]
+
+[resource]
+script = ExtResource("1_gbqsc")
+id = "barghest_exausted"
+name = "Barghest"
+combat_sprite = ExtResource("1_l30ac")
+base_hp = 200
+base_atk = 0
+res_ice = 2.0
+skill_list = Array[String](["enrage"])
+ai_brain = ExtResource("1_8qed5")
+metadata/_custom_type_script = "uid://yr4eb4cde4y1"

@@ -31,30 +31,23 @@ var current_hp: int = 0:
 			died.emit()
 
 var current_mp: int = 0
-
+var has_mutated_this_round: bool = false
 ## Inicializa o Boss apontando para a sua ficha EnemyData inicial
-## Inicializa o Boss recebendo a Estrutura do Puzzle
-## Inicializa o Boss recebendo o Gerenciador do Puzzle
 func initialize(structure_data: BossStructureData) -> void:
 	if not structure_data:
-		print("❌ [DEBUG - EnemyState] ERRO: O combate iniciou com um BossStructureData NULO!")
 		return
 		
 	active_blueprint = structure_data.initial_enemy_blueprint
 	phase_registry = structure_data.possible_phases
 	
-	current_phase_id = "INITIAL"
+	current_phase_index = 0
+	current_phase_id = active_blueprint.id
 	is_currently_stunned = false
+	has_mutated_this_round = false # 🌟 Garante o reset completo no recomeço da luta
 	active_status.clear()
 	
 	current_hp = get_max_hp()
 	current_mp = get_max_mp()
-	
-	print("🟢 [DEBUG - EnemyState] BOSS INICIALIZADO COM SUCESSO!")
-	print("   | ID do Chefe: %s" % structure_data.boss_id)
-	print("   | Forma Inicial: %s (ID da Ficha: %s)" % [active_blueprint.name, active_blueprint.id])
-	print("   | Status Iniciais -> HP: %d/%d | MP: %d" % [current_hp, get_max_hp(), current_mp])
-	print("   | Fases Registradas em Runtime: %d detectadas." % phase_registry.size())
 
 func get_max_hp() -> int: 
 	return active_blueprint.base_hp if active_blueprint else 100
@@ -98,6 +91,7 @@ func has_status(status_id: String) -> bool:
 
 ## Called by the Combat Manager to tick down statuses, ignoring permanent passives (-1 duration)
 func tick_status() -> void:
+	has_mutated_this_round = false
 	var to_remove: Array = []
 	
 	for status in active_status.keys():
@@ -122,18 +116,24 @@ func tick_status() -> void:
 		enemy_status_updated.emit()
 # --- SISTEMA DE GATILHOS E TRANSFORMAÇÃO POLIMÓRFICA ---
 
-## Chamado sempre que um evento relevante acontece no combate
-## Avalia os gatilhos lendo a array local que está na memória de runtime
+# Add this variable at the top of your enemy_state.gd script if you haven't already:
+var current_phase_index: int = 0
+
+## Chamado sempre que um evento relevante acontece no combate.
+## Avalia os gatilhos de forma polimórfica e não-linear, respeitando o tipo do evento.
 func evaluate_triggers(event_type: String, context_data: Dictionary = {}) -> void:
 	if phase_registry.is_empty(): 
 		return
 		
 	print("🔍 [DEBUG - EnemyState] Avaliando Gatilhos de Fase (Evento: %s)..." % event_type)
 	
+	# Injeta o tipo de evento diretamente no contexto para garantir que os gatilhos saibam quem os chamou
+	var modified_context = context_data.duplicate()
+	modified_context["current_event_type"] = event_type
+	
 	for i in range(phase_registry.size()):
 		var phase = phase_registry[i]
 		if not phase or not phase.phase_blueprint: 
-			print("   | ⚠️ Slot de Fase %d está vazio ou sem EnemyData atrelado!" % i)
 			continue
 			
 		# Evita reativar a fase que já está ativa
@@ -144,23 +144,24 @@ func evaluate_triggers(event_type: String, context_data: Dictionary = {}) -> voi
 		
 		var all_conditions_met = true
 		if phase.activation_triggers.is_empty():
-			print("   | -> ❌ Rejeitada: Esta fase não possui nenhum recurso de gatilho configurado.")
 			all_conditions_met = false
 			
 		for t_idx in range(phase.activation_triggers.size()):
 			var trigger = phase.activation_triggers[t_idx]
 			if trigger:
-				var is_met = trigger.is_condition_met(self, context_data)
+				var is_met = trigger.is_condition_met(self, modified_context)
 				print("   |   -> Gatilho [%s] respondeu: %s" % [trigger.get_custom_class(), "✔️ ATIVADO" if is_met else "❌ NEGADO"])
 				if not is_met:
 					all_conditions_met = false
-					break # Uma falha já quebra a cadeia lógica AND
+					break # Quebra a cadeia lógica AND do bloco atual
 					
 		if all_conditions_met:
 			print("⚡ [DEBUG - EnemyState] GATILHOS VALIDADOS! Iniciando rito de transformação...")
 			_transform_into_phase(phase)
-			break # Sofre apenas uma mutação por checagem
+			return # Para a execução: impede mutações em cascata na mesma chamada de evento
 
+
+			
 # 🎭 A TRANSFORMAÇÃO DEFINITIVA (MUTAÇÃO DE BLUEPRINTS)
 ## A Transformação Definitiva com Clamp Seguro
 func _transform_into_phase(new_phase: BossPhaseData) -> void:

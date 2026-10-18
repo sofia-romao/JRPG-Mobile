@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="EnemyData" format=3 uid="uid://dojuriegbbnmt"]
+
+[ext_resource type="Texture2D" uid="uid://culjr38j35e6s" path="res://resources/enemies/barghest_data/o EX.png" id="1_1ipnh"]
+[ext_resource type="Script" uid="uid://yr4eb4cde4y1" path="res://enemy_data.gd" id="4_rwkbo"]
+
+[resource]
+script = ExtResource("4_rwkbo")
+id = "barghest_enraged"
+name = "Barghest, Enraged"
+color_theme = Color(0.3254902, 0, 0, 1)
+combat_sprite = ExtResource("1_1ipnh")
+res_fire = 0.0
+skill_list = Array[String](["agi"])
+metadata/_custom_type_script = "uid://yr4eb4cde4y1"

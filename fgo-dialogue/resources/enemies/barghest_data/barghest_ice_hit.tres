@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="BossPhaseData" format=3 uid="uid://cve1mevm64ex"]
+
+[ext_resource type="Script" uid="uid://d38neb12fpe8p" path="res://activation_trigger.gd" id="1_w6u66"]
+[ext_resource type="Script" uid="uid://c5c1lk86h7ixb" path="res://boss_phase_data.gd" id="2_2hxtv"]
+[ext_resource type="Resource" uid="uid://1bffk7owin1k" path="res://resources/boss_triggers/trigger_ice_hit.tres" id="2_oxait"]
+[ext_resource type="Resource" uid="uid://belf4of38nark" path="res://resources/enemies/barghest_data/barghest_exausted.tres" id="3_bx5b7"]
+
+[resource]
+script = ExtResource("2_2hxtv")
+phase_blueprint = ExtResource("3_bx5b7")
+is_stunned = true
+activation_triggers = Array[ExtResource("1_w6u66")]([ExtResource("2_oxait")])
+metadata/_custom_type_script = "uid://c5c1lk86h7ixb"

@@ -9,5 +9,6 @@ id = "barghest"
 name = "Barghest"
 color_theme = Color(1, 0, 0.015686275, 1)
 combat_sprite = ExtResource("1_v637l")
+base_hp = 200
 res_fire = 0.5
 metadata/_custom_type_script = "uid://yr4eb4cde4y1"

@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="SkillData" format=3 uid="uid://sq3e7rcb7mo7"]
+
+[ext_resource type="Script" uid="uid://8ol7wmoevwbk" path="res://skill_data.gd" id="1_qhttf"]
+[ext_resource type="Resource" uid="uid://dj7eksvevnq5c" path="res://resources/status_effects/frostbite.tres" id="2_rr4ab"]
+
+[resource]
+script = ExtResource("1_qhttf")
+id = "freeze"
+name = "Freeze"
+description = "Aplica frostbite no inimigo."
+element_type = "SUPPORT"
+status_to_apply = ExtResource("2_rr4ab")
+status_chance = 1.0
+status_duration = 3
+metadata/_custom_type_script = "uid://8ol7wmoevwbk"

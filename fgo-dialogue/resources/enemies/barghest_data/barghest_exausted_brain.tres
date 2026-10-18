@@ -1,0 +1,7 @@
+[gd_resource type="Resource" script_class="BrainBarghestExhausted" format=3 uid="uid://co7cpvqtppk7k"]
+
+[ext_resource type="Script" uid="uid://crcgalqtf6o0u" path="res://barghest_exausted_brain.gd" id="1_1040f"]
+
+[resource]
+script = ExtResource("1_1040f")
+metadata/_custom_type_script = "uid://crcgalqtf6o0u"

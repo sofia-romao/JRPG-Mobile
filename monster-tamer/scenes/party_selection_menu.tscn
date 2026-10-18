@@ -1,0 +1,67 @@
+[gd_scene format=3 uid="uid://bfktfdy7yeljp"]
+
+[ext_resource type="Script" uid="uid://bt5y80jos8jvv" path="res://party_selection_menu.gd" id="1_axaai"]
+[ext_resource type="PackedScene" uid="uid://cavqlxggfvlb1" path="res://scenes/hero_selection_card.tscn" id="2_7xtmb"]
+[ext_resource type="PackedScene" uid="uid://dbtxuhojfjj8q" path="res://scenes/mission_card.tscn" id="3_wpd0i"]
+[ext_resource type="Script" uid="uid://6ulkprshou6x" path="res://mission_data.gd" id="4_arsrb"]
+[ext_resource type="Resource" uid="uid://b58oxcytcjh3x" path="res://resources/missions/barghest_test_mission.tres" id="6_ucnai"]
+
+[node name="PartySelectionMenu" type="Control" unique_id=928408070 node_paths=PackedStringArray("grid_container", "action_button")]
+custom_minimum_size = Vector2(400, 500)
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_axaai")
+hero_card_prefab = ExtResource("2_7xtmb")
+mission_card_prefab = ExtResource("3_wpd0i")
+grid_container = NodePath("ScrollContainer/HeroGrid")
+action_button = NodePath("ActionButton")
+mission_resources = Array[ExtResource("4_arsrb")]([ExtResource("6_ucnai")])
+
+[node name="Control" type="Control" parent="." unique_id=603948743]
+custom_minimum_size = Vector2(0, 100)
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="ScrollContainer" type="ScrollContainer" parent="." unique_id=1790750672]
+layout_mode = 1
+anchors_preset = 14
+anchor_top = 0.5
+anchor_right = 1.0
+anchor_bottom = 0.5
+offset_left = -3.1507568
+offset_top = -267.0
+offset_right = -3.1507568
+offset_bottom = 141.85553
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="HeroGrid" type="GridContainer" parent="ScrollContainer" unique_id=1782616274]
+custom_minimum_size = Vector2(540, 400)
+layout_mode = 2
+
+[node name="ActionButton" type="Button" parent="." unique_id=2121624718]
+layout_mode = 0
+offset_left = 366.0
+offset_top = 823.0
+offset_right = 519.0
+offset_bottom = 942.0
+text = "START"
+
+[node name="BackButton" type="Button" parent="." unique_id=1209156463]
+layout_mode = 0
+offset_left = 17.0
+offset_top = 823.0
+offset_right = 170.0
+offset_bottom = 942.0
+text = "BACK"
+
+[connection signal="pressed" from="ActionButton" to="." method="_on_action_button_pressed"]
+[connection signal="pressed" from="BackButton" to="." method="_on_back_button_pressed"]

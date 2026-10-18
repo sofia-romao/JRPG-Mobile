@@ -1,0 +1,119 @@
+[gd_scene format=3 uid="uid://dc2hokb1rqs14"]
+
+[ext_resource type="Script" uid="uid://dk56ojcyo2oaw" path="res://main_menu.gd" id="1_l6cm7"]
+
+[node name="MainMenu" type="Control" unique_id=182297998 node_paths=PackedStringArray("title_panel", "confirm_panel", "continue_button", "story_art_display")]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_l6cm7")
+title_panel = NodePath("TitlePanel")
+confirm_panel = NodePath("TitlePanel/VBoxContainer2")
+continue_button = NodePath("TitlePanel/ConfirmPanel/ContinueButton")
+story_art_display = NodePath("StoryArtDisplay")
+
+[node name="BackGroundBlack" type="ColorRect" parent="." unique_id=1211453083]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.011764706, 0.011764706, 0.011764706, 1)
+
+[node name="StoryArtDisplay" type="TextureRect" parent="." unique_id=1213300989]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="TitlePanel" type="Control" parent="." unique_id=1523663965]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="ConfirmPanel" type="VBoxContainer" parent="TitlePanel" unique_id=1432728334]
+custom_minimum_size = Vector2(300, 200)
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -150.0
+offset_top = -100.0
+offset_right = 150.0
+offset_bottom = 100.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="NewGameButton" type="Button" parent="TitlePanel/ConfirmPanel" unique_id=289427567]
+layout_mode = 2
+size_flags_vertical = 3
+text = "New Game"
+
+[node name="ContinueButton" type="Button" parent="TitlePanel/ConfirmPanel" unique_id=1803821656]
+layout_mode = 2
+size_flags_vertical = 3
+text = "Continue"
+
+[node name="ExitButton" type="Button" parent="TitlePanel/ConfirmPanel" unique_id=1117889137]
+layout_mode = 2
+size_flags_vertical = 3
+text = "Exit"
+
+[node name="VBoxContainer2" type="VBoxContainer" parent="TitlePanel" unique_id=133283841]
+visible = false
+custom_minimum_size = Vector2(400, 250)
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -200.0
+offset_top = -125.0
+offset_right = 200.0
+offset_bottom = 125.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Control" type="Control" parent="TitlePanel/VBoxContainer2" unique_id=2126756994]
+layout_mode = 2
+
+[node name="Panel" type="ColorRect" parent="TitlePanel/VBoxContainer2/Control" unique_id=1466630437]
+layout_mode = 0
+offset_right = 400.0
+offset_bottom = 251.0
+size_flags_vertical = 3
+color = Color(0.16078432, 0, 0.56078434, 1)
+
+[node name="AlertLabel" type="Label" parent="TitlePanel/VBoxContainer2" unique_id=578623232]
+layout_mode = 2
+text = "OVERWRITE SAVE? PROGRESS WILL BE LOST."
+
+[node name="ConfirmButton" type="Button" parent="TitlePanel/VBoxContainer2" unique_id=1510504006]
+layout_mode = 2
+size_flags_vertical = 3
+text = "Confirm
+"
+
+[node name="CancelButton" type="Button" parent="TitlePanel/VBoxContainer2" unique_id=1279364868]
+layout_mode = 2
+size_flags_vertical = 3
+text = "Cancel
+"
+
+[connection signal="pressed" from="TitlePanel/ConfirmPanel/NewGameButton" to="." method="_on_new_game_pressed"]
+[connection signal="pressed" from="TitlePanel/ConfirmPanel/ContinueButton" to="." method="_on_continue_pressed"]
+[connection signal="pressed" from="TitlePanel/ConfirmPanel/ExitButton" to="." method="_on_exit_pressed"]
+[connection signal="pressed" from="TitlePanel/VBoxContainer2/ConfirmButton" to="." method="_on_confirm_overwrite_pressed"]
+[connection signal="pressed" from="TitlePanel/VBoxContainer2/CancelButton" to="." method="_on_cancel_overwrite_pressed"]

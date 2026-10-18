@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="HeroData" format=3 uid="uid://0gfwfgwo4p3f"]
+
+[ext_resource type="Script" uid="uid://bln4pkc2ot1or" path="res://hero_data.gd" id="1_hksuq"]
+[ext_resource type="Texture2D" uid="uid://bwi77x5m5uiut" path="res://icon.svg" id="1_qwesp"]
+
+[resource]
+script = ExtResource("1_hksuq")
+id = "altria"
+character_name = "Altria"
+theme_color = Color(0.40392157, 0.6392157, 1, 1)
+avatar_icon = ExtResource("1_qwesp")
+attack = 325
+skills = Array[String](["agi", "tarukaja"])
+metadata/_custom_type_script = "uid://bln4pkc2ot1or"

@@ -9,6 +9,5 @@ id = "altria"
 character_name = "Altria"
 theme_color = Color(0.40392157, 0.6392157, 1, 1)
 avatar_icon = ExtResource("1_qwesp")
-attack = 325
-skills = Array[String](["agi", "tarukaja"])
+skills = Array[String](["agi", "tarukaja", "dia"])
 metadata/_custom_type_script = "uid://bln4pkc2ot1or"

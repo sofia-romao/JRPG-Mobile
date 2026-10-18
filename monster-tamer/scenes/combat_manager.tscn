@@ -1,0 +1,178 @@
+[gd_scene format=3 uid="uid://5g3dxxoho3sn"]
+
+[ext_resource type="Script" uid="uid://db467t75ihaqi" path="res://combat_manager.gd" id="1_w318q"]
+[ext_resource type="PackedScene" uid="uid://772p2rwij28s" path="res://scenes/damage_popup.tscn" id="2_iekp2"]
+[ext_resource type="Script" uid="uid://2qf1pi0robua" path="res://command_menu.gd" id="3_iekp2"]
+[ext_resource type="Texture2D" uid="uid://culjr38j35e6s" path="res://resources/enemies/barghest_data/o EX.png" id="4_hkp0v"]
+[ext_resource type="PackedScene" uid="uid://dtka1msgfngt8" path="res://scenes/hero_status_card.tscn" id="4_iekp2"]
+
+[node name="CombatManager" type="Node" unique_id=1214775926 node_paths=PackedStringArray("enemy_sprite", "background_texture", "ui_heroes_container", "ui_command_buttons", "enemy_hp_bar", "dialogue_label", "ui_dialogue_box", "visual_area_node", "screen_flash_effect", "enemy_status_icons_container")]
+script = ExtResource("1_w318q")
+damage_popup_scene = ExtResource("2_iekp2")
+hero_status_card_prefab = ExtResource("4_iekp2")
+enemy_sprite = NodePath("VisualArea/PanelContainer/EnemySprite")
+background_texture = NodePath("VisualArea/BackgroundTexture")
+ui_heroes_container = NodePath("UIArea/MainMobileLayout/PartyPanel/PartyContainer")
+ui_command_buttons = NodePath("UIArea/MainMobileLayout/CommandMenu")
+enemy_hp_bar = NodePath("VisualArea/PanelContainer/EnemySprite/HBoxContainer/EnemyHPBar")
+dialogue_label = NodePath("UIArea/MainMobileLayout/CommandMenu/DialogueBox/DialogueLabel")
+ui_dialogue_box = NodePath("UIArea/MainMobileLayout/CommandMenu/DialogueBox")
+visual_area_node = NodePath("VisualArea")
+screen_flash_effect = NodePath("UIArea/ScreenFlashEffect")
+enemy_status_icons_container = NodePath("VisualArea/PanelContainer/EnemySprite/HBoxContainer/EnemyStatusIconsContainer")
+
+[node name="AudioStreamPlayer" type="AudioStreamPlayer" parent="." unique_id=1230456112]
+
+[node name="VisualArea" type="Control" parent="." unique_id=84307575]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="BackgroundTexture" type="TextureRect" parent="VisualArea" unique_id=1241239705]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+stretch_mode = 5
+
+[node name="PanelContainer" type="MarginContainer" parent="VisualArea" unique_id=1798230834]
+layout_mode = 0
+offset_right = 547.0
+offset_bottom = 629.0
+
+[node name="EnemySprite" type="TextureRect" parent="VisualArea/PanelContainer" unique_id=806145300]
+layout_mode = 2
+texture = ExtResource("4_hkp0v")
+stretch_mode = 3
+
+[node name="HBoxContainer" type="HBoxContainer" parent="VisualArea/PanelContainer/EnemySprite" unique_id=301627468]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="EnemyHPBar" type="ProgressBar" parent="VisualArea/PanelContainer/EnemySprite/HBoxContainer" unique_id=1202804541]
+custom_minimum_size = Vector2(200, 0)
+layout_mode = 2
+
+[node name="EnemyStatusIconsContainer" type="HBoxContainer" parent="VisualArea/PanelContainer/EnemySprite/HBoxContainer" unique_id=560258590]
+custom_minimum_size = Vector2(120, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="UIArea" type="CanvasLayer" parent="." unique_id=154824833]
+
+[node name="MainMobileLayout" type="VBoxContainer" parent="UIArea" unique_id=1881032632]
+anchors_preset = 13
+anchor_left = 0.5
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -252.0
+offset_right = 252.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Spacer" type="Control" parent="UIArea/MainMobileLayout" unique_id=961185898]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Spacer2" type="Control" parent="UIArea/MainMobileLayout" unique_id=544207440]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Spacer3" type="Control" parent="UIArea/MainMobileLayout" unique_id=1234917458]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="PartyPanel" type="PanelContainer" parent="UIArea/MainMobileLayout" unique_id=97544341]
+custom_minimum_size = Vector2(0, 200)
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="PartyContainer" type="VBoxContainer" parent="UIArea/MainMobileLayout/PartyPanel" unique_id=1476951508]
+layout_mode = 2
+
+[node name="CommandMenu" type="PanelContainer" parent="UIArea/MainMobileLayout" unique_id=615045947 node_paths=PackedStringArray("combat_manager", "skill_info_popup", "skill_info_name", "skill_info_desc", "close_popup_button")]
+custom_minimum_size = Vector2(0, 200)
+layout_mode = 2
+script = ExtResource("3_iekp2")
+combat_manager = NodePath("../../..")
+skill_info_popup = NodePath("MenuContexts/SkillInfoPopup")
+skill_info_name = NodePath("MenuContexts/SkillInfoPopup/VBoxContainer/SkillNameLabel")
+skill_info_desc = NodePath("MenuContexts/SkillInfoPopup/VBoxContainer/SkillDescriptionLabel")
+close_popup_button = NodePath("MenuContexts/SkillInfoPopup/VBoxContainer/ClosePopupButton")
+
+[node name="MenuContexts" type="MarginContainer" parent="UIArea/MainMobileLayout/CommandMenu" unique_id=1352630335]
+layout_mode = 2
+
+[node name="MainButtons" type="GridContainer" parent="UIArea/MainMobileLayout/CommandMenu/MenuContexts" unique_id=574079896]
+layout_mode = 2
+columns = 2
+
+[node name="AttackButton" type="Button" parent="UIArea/MainMobileLayout/CommandMenu/MenuContexts/MainButtons" unique_id=2099042336]
+custom_minimum_size = Vector2(250, 100)
+layout_mode = 2
+text = "Lutar
+"
+
+[node name="SkillsButton" type="Button" parent="UIArea/MainMobileLayout/CommandMenu/MenuContexts/MainButtons" unique_id=1628132285]
+custom_minimum_size = Vector2(250, 100)
+layout_mode = 2
+text = "Skill"
+
+[node name="SkillsSubMenu" type="ScrollContainer" parent="UIArea/MainMobileLayout/CommandMenu/MenuContexts" unique_id=1869167631]
+custom_minimum_size = Vector2(80, 80)
+layout_mode = 2
+
+[node name="SkillsList" type="VBoxContainer" parent="UIArea/MainMobileLayout/CommandMenu/MenuContexts/SkillsSubMenu" unique_id=564479411]
+custom_minimum_size = Vector2(80, 80)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="SkillInfoPopup" type="PanelContainer" parent="UIArea/MainMobileLayout/CommandMenu/MenuContexts" unique_id=1607804312]
+visible = false
+layout_mode = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="UIArea/MainMobileLayout/CommandMenu/MenuContexts/SkillInfoPopup" unique_id=85494558]
+layout_mode = 2
+
+[node name="SkillNameLabel" type="Label" parent="UIArea/MainMobileLayout/CommandMenu/MenuContexts/SkillInfoPopup/VBoxContainer" unique_id=1157606932]
+layout_mode = 2
+
+[node name="SkillDescriptionLabel" type="Label" parent="UIArea/MainMobileLayout/CommandMenu/MenuContexts/SkillInfoPopup/VBoxContainer" unique_id=1421085157]
+layout_mode = 2
+
+[node name="Spacer" type="Control" parent="UIArea/MainMobileLayout/CommandMenu/MenuContexts/SkillInfoPopup/VBoxContainer" unique_id=385593180]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="ClosePopupButton" type="Button" parent="UIArea/MainMobileLayout/CommandMenu/MenuContexts/SkillInfoPopup/VBoxContainer" unique_id=45380283]
+layout_mode = 2
+size_flags_vertical = 3
+text = "[CLOSE]"
+
+[node name="DialogueBox" type="PanelContainer" parent="UIArea/MainMobileLayout/CommandMenu" unique_id=1263481209]
+custom_minimum_size = Vector2(0, 200)
+layout_mode = 2
+
+[node name="ColorRect" type="ColorRect" parent="UIArea/MainMobileLayout/CommandMenu/DialogueBox" unique_id=1493915956]
+layout_mode = 2
+color = Color(0.011764706, 0.011764706, 0.011764706, 1)
+
+[node name="DialogueLabel" type="RichTextLabel" parent="UIArea/MainMobileLayout/CommandMenu/DialogueBox" unique_id=1767918853]
+layout_mode = 2
+bbcode_enabled = true
+
+[node name="ScreenFlashEffect" type="ColorRect" parent="UIArea" unique_id=35238050]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+color = Color(1, 1, 1, 0)

@@ -1,0 +1,7 @@
+[gd_resource type="Resource" script_class="TriggerStatusTransformation" format=3 uid="uid://b7xbnpv41gjsq"]
+
+[ext_resource type="Script" uid="uid://by1adyymtgesb" path="res://trigger_status_transformation.gd" id="1_tvd7w"]
+
+[resource]
+script = ExtResource("1_tvd7w")
+metadata/_custom_type_script = "uid://by1adyymtgesb"

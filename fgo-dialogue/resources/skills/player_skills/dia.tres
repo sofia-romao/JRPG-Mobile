@@ -8,4 +8,5 @@ id = "dia"
 name = "Dia"
 element_type = "HEAL"
 target_type = 1
+damage_multiplier = 2.0
 metadata/_custom_type_script = "uid://8ol7wmoevwbk"
