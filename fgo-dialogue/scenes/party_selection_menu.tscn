@@ -4,9 +4,10 @@
 [ext_resource type="PackedScene" uid="uid://cavqlxggfvlb1" path="res://scenes/hero_selection_card.tscn" id="2_7xtmb"]
 [ext_resource type="PackedScene" uid="uid://dbtxuhojfjj8q" path="res://scenes/mission_card.tscn" id="3_wpd0i"]
 [ext_resource type="Script" uid="uid://6ulkprshou6x" path="res://mission_data.gd" id="4_arsrb"]
+[ext_resource type="Resource" uid="uid://di7kicawy0m4i" path="res://resources/missions/barghest_END.tres" id="6_0mgq3"]
 [ext_resource type="Resource" uid="uid://b58oxcytcjh3x" path="res://resources/missions/barghest_test_mission.tres" id="6_ucnai"]
 
-[node name="PartySelectionMenu" type="Control" unique_id=928408070 node_paths=PackedStringArray("grid_container", "action_button")]
+[node name="PartySelectionMenu" type="Control" unique_id=928408070 node_paths=PackedStringArray("grid_container", "action_button", "show_completed_toggle")]
 custom_minimum_size = Vector2(400, 500)
 layout_mode = 3
 anchors_preset = 15
@@ -19,7 +20,8 @@ hero_card_prefab = ExtResource("2_7xtmb")
 mission_card_prefab = ExtResource("3_wpd0i")
 grid_container = NodePath("ScrollContainer/HeroGrid")
 action_button = NodePath("ActionButton")
-mission_resources = Array[ExtResource("4_arsrb")]([ExtResource("6_ucnai")])
+show_completed_toggle = NodePath("ShowCompletedToggle")
+mission_resources = Array[ExtResource("4_arsrb")]([ExtResource("6_ucnai"), ExtResource("6_0mgq3")])
 
 [node name="Control" type="Control" parent="." unique_id=603948743]
 custom_minimum_size = Vector2(0, 100)
@@ -62,6 +64,21 @@ offset_top = 823.0
 offset_right = 170.0
 offset_bottom = 942.0
 text = "BACK"
+
+[node name="ShowCompletedToggle" type="CheckBox" parent="." unique_id=1795862877]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -96.0
+offset_top = -15.5
+offset_right = 96.0
+offset_bottom = 15.5
+grow_horizontal = 2
+grow_vertical = 2
+text = "View Replay Missions"
 
 [connection signal="pressed" from="ActionButton" to="." method="_on_action_button_pressed"]
 [connection signal="pressed" from="BackButton" to="." method="_on_back_button_pressed"]

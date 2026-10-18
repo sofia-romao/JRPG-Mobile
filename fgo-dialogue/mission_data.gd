@@ -6,6 +6,11 @@ extends Resource
 @export var id: String = ""
 @export var title: String = ""
 @export_multiline var description: String = ""
+@export_group("Rewards")
+## O herói dono que vai receber a skin (ex: "altria", "mash", "hero3")
+@export var reward_hero_owner: String = ""
+## O ID da nova skin/kit a ser liberada (ex: "altria_alter")
+@export var reward_kit_id: String = ""
 
 @export_group("Flow Trigger")
 # O evento que dispara ao iniciar a missão pela primeira vez (Parte 1)

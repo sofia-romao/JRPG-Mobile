@@ -10,22 +10,22 @@ class_name MainController
 
 # --- SCENE PATHS ---
 const MAIN_MENU_PATH = "res://scenes/main_menu.tscn"
-const HERO_DETAILS_PATH = "res://scenes/hero_details_menu.tscn"   # 🆕 Seu alojamento de heróis
+const HERO_DETAILS_PATH = "res://scenes/hero_details_menu.tscn"
 const EXPLORATION_SCENE_PATH = "res://scenes/party_selection_menu.tscn"
 const DIALOGUE_SCENE_PATH = "res://scenes/dialogue_box.tscn"
 const COMBAT_SCENE_PATH = "res://scenes/combat_manager.tscn"
 
 var _current_active_scene: Node = null
 var _current_combat_data: CombatData = null
+
 func _ready() -> void:
 	if scene_container == null:
 		push_error("Main: The 'scene_container' node was not assigned in the Inspector!")
 		return
-	# 🚀 O SEGREDO DA WEB: Injeta os arquivos carregados nativamente no Autoload global!
+	
 	if PlayerData.has_method("initialize_roster_statically"):
 		PlayerData.initialize_roster_statically(starting_hero_resources)
 		
-	# Game starts mandatorily at Title Screen
 	_transition_to_scene(MAIN_MENU_PATH)
 
 func _transition_to_scene(scene_path: String) -> Node:
@@ -46,7 +46,6 @@ func _transition_to_scene(scene_path: String) -> Node:
 	return new_instance
 
 func _connect_active_scene_signals(scene: Node) -> void:
-	# Usando conexões diretas para métodos fixos em vez de Lambdas anônimas
 	if scene.has_signal("back_requested"):
 		scene.connect("back_requested", _on_back_to_hub_requested)
 		
@@ -59,19 +58,33 @@ func _connect_active_scene_signals(scene: Node) -> void:
 	if scene.has_signal("continue_pressed"):
 		scene.connect("continue_pressed", _on_back_to_hub_requested)
 
-	# 2. Exploration Scene (Menu Unificado)
 	if scene.has_signal("mission_started"):
 		scene.connect("mission_started", _on_exploration_requested_dialogue)
 		
-	# 3. Dialogue Manager
 	if scene.has_signal("game_event_triggered"):
 		scene.connect("dialogue_finished", _on_dialogue_finished)
 		scene.connect("game_event_triggered", _on_dialogue_triggered_event)
 		
-	# 4. Combat Manager
 	if scene.has_signal("combat_finished"):
 		scene.connect("combat_finished", _on_combat_finished)
 		print("🔗 Main: Connected Combat signals successfully!")
+
+## 🏆 Finaliza a missão ativa de forma direta e dispara a checagem Lock & Key
+func _finalize_active_mission() -> void:
+	if PlayerData.active_mission_id.is_empty():
+		return
+		
+	if not PlayerData.completed_missions.has(PlayerData.active_mission_id):
+		PlayerData.completed_missions.append(PlayerData.active_mission_id)
+		print("🏆 [Main] Missão concluída com sucesso: ", PlayerData.active_mission_id)
+		
+		# 🔑 Atualiza as recompensas baseadas na nova lista de missões concluídas
+		PlayerData.evaluate_mission_rewards_statically()
+		
+		if SaveManager.has_method("save_game"):
+			SaveManager.save_game()
+	else:
+		print("🔄 [Main] Replay de missão detectado para: %s. Recompensas mantidas intactas." % PlayerData.active_mission_id)
 
 # --- SIGNAL RECEIVERS ---
 
@@ -85,7 +98,8 @@ func _on_dialogue_finished() -> void:
 	if _current_combat_data != null: 
 		return
 		
-	# Volta para o Hub Central em vez de empurrar direto para as missões
+	# Caso Narrativo Puro: O diálogo acabou sem lutas, então a missão conclui com sucesso
+	_finalize_active_mission()
 	_transition_to_scene(EXPLORATION_SCENE_PATH)
 
 func _on_dialogue_triggered_event(event: GameEvent) -> void:
@@ -121,39 +135,29 @@ func _on_dialogue_triggered_event(event: GameEvent) -> void:
 			else:
 				PlayerData.heal_active_party()
 
-
 func _on_combat_finished(victory: bool) -> void:
 	print("🏁 Main: Combat finished! Victory: ", victory)
 	
 	if victory:
-		if not PlayerData.active_mission_id.is_empty():
-			if not PlayerData.completed_missions.has(PlayerData.active_mission_id):
-				PlayerData.completed_missions.append(PlayerData.active_mission_id)
-				print("🏅 [Main] Mission added to completed list: ", PlayerData.active_mission_id)
+		PlayerData.heal_active_party()
 		
-		if SaveManager.has_method("save_game"):
-			SaveManager.save_game()
-		
-		# 🌟 Se houver um diálogo de história para tocar após a vitória (ex: cutscene de vitória)
+		# Se houver diálogo pós-combate, passamos para ele (ele chamará o salvamento ao terminar)
 		if _current_combat_data and _current_combat_data.victory_event != null:
 			var post_combat_event = _current_combat_data.victory_event
 			_current_combat_data = null
 			
-			# Dá um respiro de 1 frame para desvincular os sinais antigos com segurança
 			await get_tree().process_frame
 			_on_dialogue_triggered_event(post_combat_event)
 			return
 			
-		# Se não houver diálogo pós-créditos, cura o time e volta direto para a navegação do Hub
-		PlayerData.heal_active_party()
+		# Caso de Combate Direto sem diálogos posteriores: finaliza e salva agora
 		_current_combat_data = null
-		
+		_finalize_active_mission()
 		await get_tree().process_frame
 		_transition_to_scene(EXPLORATION_SCENE_PATH)
 	else:
 		print("☠️ Main: Player defeated! Game Over logic goes here.")
 		_current_combat_data = null
-		# Se perder, você pode redirecionar para o menu principal ou hub
 		_transition_to_scene(MAIN_MENU_PATH)
 
 # --- NAVIGATOR CHANNELS ---

@@ -102,7 +102,6 @@ func unlock_skin_for_hero(hero_owner: String, new_kit_id: String) -> void:
 		if data:
 			var new_state = HeroState.new()
 			new_state.blueprint = data
-			new_state.current_exp = 0
 			new_state.full_heal()
 			
 			# Registra a nova skin no banco de dados geral de heróis
@@ -112,3 +111,32 @@ func unlock_skin_for_hero(hero_owner: String, new_kit_id: String) -> void:
 			# 💾 Salva o progresso no disco na hora para o jogador não perder o drop!
 			if SaveManager.has_method("save_game"):
 				SaveManager.save_game()
+## 🆕 FUNÇÃO DE PROGRESSÃO: Marca uma missão como concluída e salva no disco
+func complete_mission(mission_id: String) -> void:
+	if not completed_missions.has(mission_id):
+		completed_missions.append(mission_id)
+		print("🏆 [PlayerData] Missão concluída com sucesso: ", mission_id)
+		
+		# 💾 Salva o progresso na hora para o jogador não perder o desbloqueio!
+		if SaveManager.has_method("save_game"):
+			SaveManager.save_game()
+## 🔑 SISTEMA LOCK & KEY: Varre as missões concluídas e garante as skins corretas
+func evaluate_mission_rewards_statically() -> void:
+	# Regra: "ID_DA_MISSAO": ["DONO_DO_HEROI", "ID_DA_SKIN"]
+	var reward_rules: Dictionary = {
+		
+		"barghest_end": ["altria", "altria_berserker"],
+		"chapter_one_clear": ["mash", "mash_shield_broken"]
+	}
+	
+	for mission_id in reward_rules:
+		# Se a missão foi concluída, destrava a skin correspondente automaticamente!
+		if completed_missions.has(mission_id):
+			var reward_data = reward_rules[mission_id]
+			var owner = reward_data[0]
+			var kit_id = reward_data[1]
+			
+			# Destrava apenas se o herói ainda não tiver esse kit carregado na memória viva
+			if not hero_collection.has(kit_id):
+				unlock_skin_for_hero(owner, kit_id)
+				print("🔑 [Lock&Key] Verificado: %s garantido por concluir %s!" % [kit_id, mission_id])

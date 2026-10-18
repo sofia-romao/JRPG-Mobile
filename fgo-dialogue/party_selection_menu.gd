@@ -11,16 +11,21 @@ enum MenuTab { HEROES, MISSIONS }
 @export_category("UI Nodes")
 @export var grid_container: GridContainer
 @export var action_button: Button 
-
+@export var show_completed_toggle: CheckBox # 🔄 REPLAY TOGGLE CONTROL Added here!
 
 var current_tab: MenuTab = MenuTab.HEROES
 var available_missions: Dictionary = {} 
 @export var mission_resources: Array[MissionData] = []
+
 func _ready() -> void:
 	_load_missions_from_folder()
 
 	if action_button and not action_button.pressed.is_connected(_on_action_button_pressed):
 		action_button.pressed.connect(_on_action_button_pressed)
+		
+	# 🔔 Hook up the checkbox signal so clicking it instantly rebuilds the view grid!
+	if show_completed_toggle and not show_completed_toggle.toggled.is_connected(_on_toggle_completed_view):
+		show_completed_toggle.toggled.connect(_on_toggle_completed_view)
 		
 	# Força o menu a iniciar exibindo a lista de missões logo no primeiro frame
 	current_tab = MenuTab.MISSIONS
@@ -42,43 +47,54 @@ func update_menu_ui() -> void:
 # --- RENDERS DE ABA ---
 
 func _render_heroes_tab() -> void:
+	# Esconde o checkbox quando navegando nas Barracks para manter o painel limpo
+	if show_completed_toggle: show_completed_toggle.hide()
+	
 	if action_button:
 		if PlayerData.selected_mission_data != null:
-			# Se veio da aba de missões com um contrato, vira o botão de Deploy!
 			action_button.text = "[ DEPLOY TEAM ]"
-			# TRAVA: Fica desativado se o jogador tentar entrar na luta sem heróis selecionados!
 			action_button.disabled = PlayerData.active_party.is_empty()
 		else:
-			# Se o jogador está apenas navegando na tela sem missão selecionada
 			action_button.text = "Select a Mission First"
 			action_button.disabled = true
 		
 	for hero_id in PlayerData.hero_collection:
-		var hero_state: HeroState = PlayerData.hero_collection[hero_id]
+		var hero_state: HeroState = PlayerData.get_hero(hero_id)
 		var is_in_party: bool = PlayerData.active_party.has(hero_id)
 		
 		var new_card = hero_card_prefab.instantiate()
 		grid_container.add_child(new_card)
 		
 		if new_card.has_method("initialize_card"):
-			# Removido o argumento is_locked daqui
 			new_card.initialize_card(hero_id, hero_state, is_in_party)
 			
 		if new_card.has_signal("card_clicked"):
 			new_card.card_clicked.connect(_on_hero_card_selected)
 
 func _render_missions_tab() -> void:
+	# Mostra o checkbox somente quando visualizando o mural de missões
+	if show_completed_toggle: show_completed_toggle.show()
+	
 	if action_button:
-		# Na aba de missões o botão inferior serve apenas como uma instrução
 		action_button.text = "Select Mission"
 		action_button.disabled = true
 
+	# ⚙️ DETECTOR DE ESTADO DO FILTRO
+	var viewing_completed_only: bool = false
+	if show_completed_toggle:
+		viewing_completed_only = show_completed_toggle.button_pressed
+
 	for mission_id in available_missions:
 		var mission: MissionData = available_missions[mission_id]
+		var is_mission_clear: bool = PlayerData.completed_missions.has(mission.id)
 		
-		if PlayerData.completed_missions.has(mission.id):
+		# 🎛️ FILTRO DE EXCLUSÃO MÚTUA INTELIGENTE:
+		# Se o checkbox está marcado, esconde as missões novas.
+		# Se o checkbox está desmarcado, esconde as missões completas!
+		if is_mission_clear != viewing_completed_only:
 			continue
 			
+		# Regra de Progressão: Impede missões futuras bloqueadas de pularem a ordem
 		if mission.required_mission_id != "" and not PlayerData.completed_missions.has(mission.required_mission_id):
 			continue
 			
@@ -94,6 +110,10 @@ func _render_missions_tab() -> void:
 
 # --- SINAIS DE SELEÇÃO DE CARTÕES ---
 
+func _on_toggle_completed_view(_is_toggled: bool) -> void:
+	print("🎛️ [Filter] Swapping mission list mode. Show Completed Only: ", _is_toggled)
+	update_menu_ui()
+
 func _on_hero_card_selected(hero_id: String) -> void:
 	if PlayerData.active_party.has(hero_id):
 		PlayerData.active_party.erase(hero_id)
@@ -103,16 +123,12 @@ func _on_hero_card_selected(hero_id: String) -> void:
 			
 	update_menu_ui()
 
-# No seu party_selection_menu.gd
 func _on_mission_card_selected(mission: MissionData) -> void:
-	# Guarda a missão selecionada na memória global
 	PlayerData.selected_mission_data = mission
 	print("🎯 Missão Selecionada: ", mission.title, ". Indo para as Barracks...")
 	
-	# Busca o maestro do jogo (MainController) para trocar de cena fisicamente
 	var main = get_tree().root.get_node_or_null("MainController")
 	if main and main.has_method("_transition_to_scene"):
-		# Abre a cena das Barracks (HERO_DETAILS_PATH)
 		main._transition_to_scene(main.HERO_DETAILS_PATH)
 
 # --- INPUT E ALTERNÂNCIA DE ABAS ---
@@ -145,7 +161,6 @@ func _on_action_button_pressed() -> void:
 func _load_missions_from_folder() -> void:
 	available_missions.clear()
 	
-	# Na Web, lemos direto do Array que você preencheu no Inspetor!
 	for mission in mission_resources:
 		if mission and not mission.id.is_empty():
 			available_missions[mission.id] = mission

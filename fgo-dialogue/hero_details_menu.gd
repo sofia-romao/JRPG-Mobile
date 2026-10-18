@@ -15,7 +15,7 @@ class_name HeroDetailsMenu
 
 @export_category("Details UI Components")
 @export var avatar_texture: TextureRect
-@export var chat_button: Button         # 💬 O BOTÃO MARAVILHOSO ESTÁ DE VOLTA!
+@export var chat_button: Button
 @export var name_label: Label
 @export var stats_label: Label
 @export var skills_list_container: VBoxContainer
@@ -26,7 +26,6 @@ class_name HeroDetailsMenu
 @export var text_click_sfx: AudioStream 
 
 @export_category("Narrative Database")
-## hero_owner_id ("altria", "mash") -> { "common": Array[String], "level_up": Dictionary }
 @export var dialogue_database: Dictionary = {}
 @export_file("*.csv") var csv_dialogue_path: String = "res://dialogue_database.csv"
 var current_hero_owner: String = ""
@@ -41,15 +40,15 @@ func _ready() -> void:
 	if deploy_button and not deploy_button.pressed.is_connected(_on_deploy_button_pressed):
 		deploy_button.pressed.connect(_on_deploy_button_pressed)
 		
-	# 💬 Conecta o clique do botão maravilhoso de conversa!
 	if chat_button and not chat_button.pressed.is_connected(_on_chat_button_pressed):
 		chat_button.pressed.connect(_on_chat_button_pressed)
 		
 	PlayerData.synchronize_active_party()
 	_populate_hero_selection_list()
 	_update_deploy_button_status()
-## Popula a lista inicial isolando os nós visuais das instâncias de cartões
+
 func _populate_hero_selection_list() -> void:
+	if not is_inside_tree() or hero_list_container == null: return
 	if not hero_list_container or not hero_card_prefab: return
 	
 	for child in hero_list_container.get_children():
@@ -63,15 +62,12 @@ func _populate_hero_selection_list() -> void:
 			var new_card = hero_card_prefab.instantiate()
 			hero_list_container.add_child(new_card)
 			
-			# 🚀 FORÇA ISOLAMENTO VISUAL: Injeta o texto direto nas propriedades do nó instanciado
-			# antes mesmo do initialize_card rodar, garantindo que o cache da UI seja quebrado!
 			if new_card.get("name_label") and new_card.name_label:
 				new_card.name_label.text = hero_state.blueprint.character_name
 				
 			if new_card.has_method("initialize_card"):
 				new_card.initialize_card(hero_owner, hero_state, false)
 				
-				# 💎 GARANTIA EXTRALIMPA: Força a sobrescrita do label após a inicialização nativa
 				if new_card.name_label:
 					new_card.name_label.text = hero_state.blueprint.character_name
 				
@@ -80,7 +76,6 @@ func _populate_hero_selection_list() -> void:
 				
 	_update_deploy_button_status()
 
-## Abre a ficha íntima carregando o kit ativo atual e montando o carrossel de skins
 func open_hero_details(hero_owner: String) -> void:
 	current_hero_owner = hero_owner
 	
@@ -94,8 +89,8 @@ func open_hero_details(hero_owner: String) -> void:
 	_populate_skin_selector_list()
 	_start_conversation()
 
-## Popula o carrossel horizontal com todas as skins desbloqueadas daquele herói
 func _populate_skin_selector_list() -> void:
+	if not is_inside_tree() or hero_list_container == null: return
 	if not skin_list_container or not hero_card_prefab: return
 	
 	for child in skin_list_container.get_children():
@@ -165,18 +160,15 @@ func _populate_skills_list(hero_state: HeroState) -> void:
 func _start_conversation() -> void:
 	if not current_hero_owner: return
 	
-	# Puxa o ID do Kit que está equipado no momento (ex: "altria", "altria_frost") [10]
 	var active_kit_id = PlayerData.active_kits[current_hero_owner]
 	var hero_state = PlayerData.get_hero(active_kit_id)
 	if not hero_state: return
 	
 	var chosen_text: String = "..."
 	
-	# 1. Verifica se o dono do herói ("altria", "mash") existe no banco de dados [10]
 	if dialogue_database.has(current_hero_owner) and dialogue_database[current_hero_owner] is Dictionary:
 		var hero_data: Dictionary = dialogue_database[current_hero_owner]
 		
-		# 2. PRIORITY: Procura se existe uma fala específica para o KIT equipado!
 		if hero_data.has("kit_reactions") and hero_data["kit_reactions"] is Dictionary:
 			var kit_dict: Dictionary = hero_data["kit_reactions"]
 			if kit_dict.has(active_kit_id):
@@ -184,13 +176,11 @@ func _start_conversation() -> void:
 				_display_typewriter_text(chosen_text)
 				return
 				
-		# 3. FALLBACK: Se não tiver fala pro kit, sorteia uma frase comum do personagem [10]
 		if hero_data.has("common") and hero_data["common"] is Array:
 			var common_list: Array = hero_data["common"]
 			if not common_list.is_empty(): 
 				chosen_text = common_list.pick_random()
 	else:
-		# Frase padrão caso o Inspetor esteja em branco [10]
 		chosen_text = "Ready to deploy, Commander. All systems calibrated." 
 		
 	_display_typewriter_text(chosen_text)
@@ -214,35 +204,30 @@ func _check_and_play_sfx() -> void:
 		if current_chars <= current_text.length():
 			var last_char = current_text[current_chars - 1]
 			if last_char != " " and text_click_sfx: AudioManager.play_sfx(text_click_sfx)
+
 func _load_dialogue_from_csv() -> void:
 	if csv_dialogue_path.is_empty() or not FileAccess.file_exists(csv_dialogue_path):
 		print("⚠️ CSV file not found! Falling back to empty database.")
 		return
 
 	var file = FileAccess.open(csv_dialogue_path, FileAccess.READ)
-	
-	# Skip the header row (id, common_lines, kit_reactions)
 	var _header = file.get_csv_line() 
-	
-	# Clear out the runtime dictionary to populate it fresh
 	dialogue_database.clear()
 
 	while !file.eof_reached():
 		var row = file.get_csv_line()
 		if row.size() < 3 or row[0].is_empty(): 
-			continue # Skip empty or broken lines
+			continue
 			
 		var hero_id = row[0].strip_edges()
 		var raw_common = row[1].strip_edges()
 		var raw_reactions = row[2].strip_edges()
 		
-		# 1. Parse common lines array (split by '|')
 		var common_array: Array[String] = []
 		if not raw_common.is_empty():
 			for line in raw_common.split("|"):
 				common_array.append(line.strip_edges())
 				
-		# 2. Parse kit reactions dictionary (split by '|' then by ':')
 		var kit_dict: Dictionary = {}
 		if not raw_reactions.is_empty():
 			for pair in raw_reactions.split("|"):
@@ -252,7 +237,6 @@ func _load_dialogue_from_csv() -> void:
 					var text = parts[1].strip_edges()
 					kit_dict[kit_id] = text
 					
-		# 3. Inject beautifully into your exact required data structure!
 		dialogue_database[hero_id] = {
 			"common": common_array,
 			"kit_reactions": kit_dict
@@ -260,7 +244,7 @@ func _load_dialogue_from_csv() -> void:
 		
 	file.close()
 	print("📊 Success! Built narrative database from CSV for HTML5 compatibility.")
-## 💬 Acionado quando o jogador clica fisicamente no ChatButton para ouvir uma nova frase!
+
 func _on_chat_button_pressed() -> void:
 	_start_conversation()
 
@@ -271,7 +255,7 @@ func close_hero_details() -> void:
 	if selection_panel: selection_panel.show()
 	_populate_hero_selection_list()
 	_update_deploy_button_status()
-## Checa se os 3 heróis possuem kits válidos equipados e se há uma missão ativa
+
 func _update_deploy_button_status() -> void:
 	if not deploy_button: return
 	
@@ -280,7 +264,6 @@ func _update_deploy_button_status() -> void:
 		deploy_button.disabled = true
 		return
 
-	# 🌐 PROTEÇÃO DA WEB: Checa se a chave salva na string existe de verdade dentro do dicionário físico!
 	var altria_ready: bool = PlayerData.active_kits.has("altria") and PlayerData.hero_collection.has(PlayerData.active_kits["altria"])
 	var mash_ready: bool = PlayerData.active_kits.has("mash") and PlayerData.hero_collection.has(PlayerData.active_kits["mash"])
 	var hero3_ready: bool = PlayerData.active_kits.has("hero3") and PlayerData.hero_collection.has(PlayerData.active_kits["hero3"])
@@ -294,7 +277,6 @@ func _update_deploy_button_status() -> void:
 		deploy_button.text = "Equip All 3 Heroes"
 		deploy_button.disabled = true
 
-
 func _on_back_button_pressed() -> void:
 	if details_panel and details_panel.visible:
 		close_hero_details()
@@ -307,9 +289,7 @@ func _on_deploy_button_pressed() -> void:
 	if PlayerData.selected_mission_data != null:
 		var mission = PlayerData.selected_mission_data
 		PlayerData.active_mission_id = mission.id
-		
 		PlayerData.heal_active_party()
-		
 		print("🚀 Barracks: Deploying squad into mission: ", mission.title)
 		var main = get_tree().root.get_node_or_null("MainController")
 		if main and main.has_method("_on_exploration_requested_dialogue"):
